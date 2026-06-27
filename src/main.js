@@ -1,3 +1,7 @@
+import { inject } from '@vercel/analytics';
+
+inject();
+
 const menu=[
 ['/','Ana Sayfa',''],['/marka-ligi','Marka Ligi','HOT'],['/kullanici-yarismasi','Kullanıcı Yarışması','NEW'],['/guven-merkezi','Güven Merkezi',''],['/sorumlu-kullanim','Sorumlu Kullanım','ÖNEMLİ'],['/kullanici-psikolojisi','Kullanıcı Psikolojisi','YARDIM'],['/wellness-merkezi','Wellness Merkezi','YENİ'],['/topluluk-merkezi','Topluluk Merkezi','1.2K'],['/ai-danisman','AI Danışman','AI'],['/sertifikasyon','Sertifikasyon',''],['/farkindalik-programlari','Farkındalık Programları','12'],['/sohbet','Sohbet','247'],['/sikayetler','Şikayetler','89'],['/seffaflik-marketplace','Şeffaflık Marketplace',''],['/sertifika-basvurusu','Sertifika Başvurusu',''],['/marka-yonetimi','Marka Yönetimi',''],['/yardim','Yardım',''],['/giris-yap','Giriş Yap',''],['/uye-ol','Üye Ol','']];
 const aliases={'/marka-karsilastirma':'/marka-ligi','/misafir-kullanici':'/','/giris':'/giris-yap'};

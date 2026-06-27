@@ -6,5 +6,8 @@
   "scripts": {
     "dev": "python3 -m http.server 5173",
     "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
