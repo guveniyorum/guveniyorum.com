@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, rmSync, appendFileSync, existsSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, appendFileSync, existsSync, writeFileSync } from 'node:fs';
 
 const routes = [
   'marka-ligi',
@@ -29,6 +29,12 @@ mkdirSync('dist/src', { recursive: true });
 copyFileSync('index.html', 'dist/index.html');
 copyFileSync('src/main.js', 'dist/src/main.js');
 copyFileSync('src/styles.css', 'dist/src/styles.css');
+
+const envConfig = {
+  supabaseUrl: process.env.VITE_SUPABASE_URL || '',
+  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || '',
+};
+writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
 if (existsSync('src/platform-store.js')) {
   copyFileSync('src/platform-store.js', 'dist/src/platform-store.js');
