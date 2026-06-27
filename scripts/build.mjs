@@ -36,6 +36,7 @@ const routes = [
   'giris-yap',
   'giris',
   'uye-ol',
+  'auth/callback',
 ];
 
 rmSync('dist', { recursive: true, force: true });
