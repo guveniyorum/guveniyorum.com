@@ -1,10 +1,24 @@
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
 
 const routes = [
+  'marka-ligi',
   'marka-karsilastirma',
-  'misafir-kullanici',
+  'kullanici-yarismasi',
+  'guven-merkezi',
+  'sorumlu-kullanim',
+  'kullanici-psikolojisi',
+  'wellness-merkezi',
+  'topluluk-merkezi',
+  'ai-danisman',
   'sertifikasyon',
+  'farkindalik-programlari',
+  'sohbet',
   'sikayetler',
+  'seffaflik-marketplace',
+  'sertifika-basvurusu',
+  'marka-yonetimi',
+  'yardim',
+  'misafir-kullanici',
   'giris-yap',
   'giris',
   'uye-ol',
@@ -23,4 +37,4 @@ for (const route of routes) {
   copyFileSync('index.html', `dist/${route}/index.html`);
 }
 
-console.log('Static build completed in dist/ with direct-route fallbacks.');
+console.log('Static build completed in dist/ with dashboard direct-route fallbacks.');
