@@ -4,6 +4,9 @@ const routes = [
   'marka-ligi',
   'marka-karsilastirma',
   'site-ligi',
+  'puanlama-motoru',
+  'firma-rekabeti',
+  'kara-liste',
   'kullanici-yarismasi',
   'guven-merkezi',
   'sorumlu-kullanim',
@@ -23,6 +26,9 @@ const routes = [
   'profil',
   'profil/sikayetlerim',
   'profil/puanlarim',
+  'puan-merkezi',
+  'odul-merkezi',
+  'sikayet-et',
   'admin',
   'admin/sikayetler',
   'admin/puanlama',
@@ -56,4 +62,4 @@ for (const route of routes) {
   copyFileSync('index.html', `dist/${route}/index.html`);
 }
 
-console.log('Static build completed in dist/ with connected product app.');
+console.log('Static build completed in dist/ with Diamond platform app.');
