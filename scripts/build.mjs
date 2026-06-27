@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, appendFileSync, existsSync } from 'node:fs';
 
 const routes = [
   'marka-ligi',
@@ -29,6 +29,19 @@ mkdirSync('dist/src', { recursive: true });
 copyFileSync('index.html', 'dist/index.html');
 copyFileSync('src/main.js', 'dist/src/main.js');
 copyFileSync('src/styles.css', 'dist/src/styles.css');
+
+if (existsSync('src/app-fix.css')) {
+  appendFileSync('dist/src/styles.css', '\n\n/* stabilization layer */\n');
+  appendFileSync('dist/src/styles.css', '\n@import url("/src/app-fix.css");\n');
+  copyFileSync('src/app-fix.css', 'dist/src/app-fix.css');
+}
+
+if (existsSync('src/action-fix.js')) {
+  appendFileSync('dist/src/main.js', '\n\n/* action stabilization layer */\n');
+  appendFileSync('dist/src/main.js', '\nimport "./action-fix.js";\n');
+  copyFileSync('src/action-fix.js', 'dist/src/action-fix.js');
+}
+
 copyFileSync('_redirects', 'dist/_redirects');
 copyFileSync('vercel.json', 'dist/vercel.json');
 
@@ -37,4 +50,4 @@ for (const route of routes) {
   copyFileSync('index.html', `dist/${route}/index.html`);
 }
 
-console.log('Static build completed in dist/ with dashboard direct-route fallbacks.');
+console.log('Static build completed in dist/ with dashboard fixes.');
