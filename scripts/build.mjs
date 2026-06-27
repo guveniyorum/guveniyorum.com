@@ -30,6 +30,10 @@ copyFileSync('index.html', 'dist/index.html');
 copyFileSync('src/main.js', 'dist/src/main.js');
 copyFileSync('src/styles.css', 'dist/src/styles.css');
 
+if (existsSync('src/platform-store.js')) {
+  copyFileSync('src/platform-store.js', 'dist/src/platform-store.js');
+}
+
 if (existsSync('src/app-fix.css')) {
   appendFileSync('dist/src/styles.css', '\n\n/* stabilization layer */\n');
   appendFileSync('dist/src/styles.css', '\n@import url("/src/app-fix.css");\n');
