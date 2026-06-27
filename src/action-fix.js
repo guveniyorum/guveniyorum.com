@@ -1,7 +1,4 @@
-const GI_STATE = {
-  user: { name: 'Mustafa', level: 7, xp: 1840, points: 425, trust: 92, complaints: 1 },
-  files: [{ id: 'GVN-2026-0001', status: 'Moderasyon incelemesinde' }]
-};
+import { platformStore } from './platform-store.js';
 
 const style = document.createElement('style');
 style.textContent = `
@@ -9,113 +6,73 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-function giProfile() {
-  return `<div class="gi-profile-card" data-gi-profile><div><span>Üye Profili</span><b>${GI_STATE.user.name}</b></div><div><span>Seviye</span><b>${GI_STATE.user.level}</b></div><div><span>XP</span><b>${GI_STATE.user.xp}</b></div><div><span>Katkı Puanı</span><b>${GI_STATE.user.points}</b></div><div><span>Güven Profili</span><b>%${GI_STATE.user.trust}</b></div></div>`;
+function user() {
+  const current = platformStore.currentUser();
+  return {
+    name: current.displayName || current.email || 'Üye',
+    level: current.level || 1,
+    xp: current.xp || 0,
+    points: current.points || 0,
+    trust: current.trustScore || 70
+  };
 }
 
-function giStats() {
-  return `<div class="gi-modal-grid"><span>Profil güncellendi</span><span>XP: ${GI_STATE.user.xp}</span><span>Katkı: ${GI_STATE.user.points}</span><span>Dosya: ${GI_STATE.files.length}</span></div>`;
+function state() { return platformStore.getState(); }
+function profile() { const u = user(); return `<div class="gi-profile-card" data-gi-profile><div><span>Üye Profili</span><b>${u.name}</b></div><div><span>Seviye</span><b>${u.level}</b></div><div><span>XP</span><b>${u.xp}</b></div><div><span>Katkı Puanı</span><b>${u.points}</b></div><div><span>Güven Profili</span><b>%${u.trust}</b></div><div><span>Veri Modu</span><b>${platformStore.hasSupabase ? 'Supabase' : 'Yerel'}</b></div></div>`; }
+function stats() { const s = state(); const u = user(); return `<div class="gi-modal-grid"><span>Veri: ${platformStore.hasSupabase ? 'Supabase' : 'Yerel fallback'}</span><span>XP: ${u.xp}</span><span>Katkı: ${u.points}</span><span>Dosya: ${s.complaints.length}</span></div>`; }
+function modal(title, body) { document.querySelector('.gi-action-modal')?.remove(); const wrap = document.createElement('div'); wrap.className = 'modal gi-action-modal'; wrap.innerHTML = `<article><button class="close" data-gi-close>×</button><h3>${title}</h3>${body}</article>`; document.body.appendChild(wrap); }
+function toast(text) { document.querySelector('.gi-toast')?.remove(); const el = document.createElement('div'); el.className = 'gi-toast'; el.textContent = text; document.body.appendChild(el); setTimeout(() => el.remove(), 3000); }
+function refreshProfile() { const old = document.querySelector('[data-gi-profile]'); if (old) old.outerHTML = profile(); }
+function install() { document.querySelectorAll('button:not([type])').forEach(button => button.type = 'button'); document.querySelectorAll('[data-complaint] button').forEach(button => button.type = 'submit'); document.querySelectorAll('[data-chat] button').forEach(button => button.type = 'submit'); if (!document.querySelector('[data-gi-profile]')) { const sideStats = document.querySelector('.side-stats,.sideStats'); if (sideStats) sideStats.insertAdjacentHTML('afterend', profile()); } }
+
+async function action(label) {
+  const result = await platformStore.submitPsychologyTest(20, { action: label });
+  refreshProfile();
+  modal('Bağlı Ekosistem Aksiyonu', `<p><b>${label}</b> işlemi profil, XP, katkı puanı ve aktivite sistemine işlendi.</p><p>İşlem kimliği: ${result.id}</p>${stats()}`);
+  toast(`${label} işlendi · profil güncellendi`);
 }
 
-function giModal(title, body) {
-  document.querySelector('.gi-action-modal')?.remove();
-  const wrap = document.createElement('div');
-  wrap.className = 'modal gi-action-modal';
-  wrap.innerHTML = `<article><button class="close" data-gi-close>×</button><h3>${title}</h3>${body}</article>`;
-  document.body.appendChild(wrap);
-}
-
-function giToast(text) {
-  document.querySelector('.gi-toast')?.remove();
-  const el = document.createElement('div');
-  el.className = 'gi-toast';
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-}
-
-function giRefreshProfile() {
-  const old = document.querySelector('[data-gi-profile]');
-  if (old) old.outerHTML = giProfile();
-}
-
-function giInstallOnce() {
-  document.querySelectorAll('button:not([type])').forEach(button => button.type = 'button');
-  document.querySelectorAll('[data-complaint] button').forEach(button => button.type = 'submit');
-  document.querySelectorAll('[data-chat] button').forEach(button => button.type = 'submit');
-  if (!document.querySelector('[data-gi-profile]')) {
-    const sideStats = document.querySelector('.side-stats,.sideStats');
-    if (sideStats) sideStats.insertAdjacentHTML('afterend', giProfile());
-  }
-}
-
-function giAction(label) {
-  GI_STATE.user.xp += 15;
-  GI_STATE.user.points += 4;
-  giRefreshProfile();
-  giModal('Bağlı Ekosistem Aksiyonu', `<p><b>${label}</b> işlemi profil, XP, katkı puanı ve aktivite sistemine işlendi.</p>${giStats()}`);
-  giToast(`${label} işlendi · +15 XP · +4 puan`);
-}
-
-window.addEventListener('click', event => {
-  if (event.target.closest('[data-gi-close]')) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    document.querySelector('.gi-action-modal')?.remove();
-    return;
-  }
-
+window.addEventListener('click', async event => {
+  if (event.target.closest('[data-gi-close]')) { event.preventDefault(); event.stopImmediatePropagation(); document.querySelector('.gi-action-modal')?.remove(); return; }
   const scroll = event.target.closest('[data-open-complaint],[data-scroll-form]');
-  if (scroll) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const form = document.querySelector('[data-complaint]');
-    if (form) {
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      form.classList.add('gi-focus');
-      setTimeout(() => form.classList.remove('gi-focus'), 1400);
-    }
-    return;
-  }
-
-  const action = event.target.closest('[data-action],[data-act]');
-  if (action) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    giAction(action.dataset.action || action.dataset.act || 'İşlem');
-  }
+  if (scroll) { event.preventDefault(); event.stopImmediatePropagation(); const form = document.querySelector('[data-complaint]'); if (form) { form.scrollIntoView({ behavior: 'smooth', block: 'start' }); form.classList.add('gi-focus'); setTimeout(() => form.classList.remove('gi-focus'), 1400); } return; }
+  const act = event.target.closest('[data-action],[data-act]');
+  if (act) { event.preventDefault(); event.stopImmediatePropagation(); await action(act.dataset.action || act.dataset.act || 'İşlem'); }
 }, true);
 
-window.addEventListener('submit', event => {
+window.addEventListener('submit', async event => {
   const form = event.target;
   if (!form.matches('form')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 
   if (form.matches('[data-complaint]')) {
-    const id = `GVN-2026-${String(GI_STATE.files.length + 1).padStart(4, '0')}`;
-    GI_STATE.files.unshift({ id, status: 'Moderasyon incelemesinde' });
-    GI_STATE.user.complaints += 1;
-    GI_STATE.user.xp += 80;
-    GI_STATE.user.points += 25;
-    giRefreshProfile();
-    giModal('Şikayet dosyan oluşturuldu', `<p><b>Dosya No:</b> ${id}</p><p><b>Durum:</b> Moderasyon incelemesinde</p><p>Dosya profil, katkı puanı, marka risk analizi ve şikayet akışıyla bağlantılı.</p>${giStats()}`);
-    giToast(`${id} oluşturuldu · +80 XP · +25 puan`);
+    const data = new FormData(form);
+    const complaint = await platformStore.createComplaint({
+      brandName: data.get('brand') || form.querySelector('input')?.value || 'Yeni Marka',
+      title: data.get('title') || 'Yeni şikayet bildirimi',
+      category: form.querySelector('select')?.value || 'Genel bildirim',
+      description: form.querySelector('textarea')?.value || 'Kullanıcı açıklaması bekleniyor.',
+      evidenceLevel: 'medium'
+    });
+    refreshProfile();
+    modal('Şikayet dosyan oluşturuldu', `<p><b>Dosya No:</b> ${complaint.publicId}</p><p><b>Durum:</b> Moderasyon incelemesinde</p><p>Dosya admin onay kuyruğuna, profil geçmişine ve marka risk analizine işlendi.</p>${stats()}`);
+    toast(`${complaint.publicId} oluşturuldu`);
     return;
   }
 
   if (form.matches('[data-chat]')) {
-    GI_STATE.user.xp += 20;
-    giRefreshProfile();
-    giModal('AI Danışman Yanıtı', `<p>AI danışman soruyu marka güvenliği, davranışsal risk ve şikayet geçmişi bağlamında değerlendirdi.</p>${giStats()}`);
+    const result = await platformStore.submitPsychologyTest(35, { source: 'ai-chat' });
+    refreshProfile();
+    modal('AI Danışman Yanıtı', `<p>AI danışman soruyu marka güvenliği, davranışsal risk ve şikayet geçmişi bağlamında değerlendirdi.</p><p>Risk seviyesi: <b>${result.riskLevel}</b></p>${stats()}`);
     return;
   }
 
-  GI_STATE.user.xp += 10;
-  giRefreshProfile();
-  giModal('Form kaydedildi', `<p>Form profil ve aktivite sistemine işlendi.</p>${giStats()}`);
+  await platformStore.signIn(form.querySelector('input[type="email"], input')?.value || 'admin@guveniyorum.com');
+  refreshProfile();
+  modal('Oturum ve profil güncellendi', `<p>Üyelik/profil akışı platform store üzerinden işlendi.</p>${stats()}`);
 }, true);
 
-setTimeout(giInstallOnce, 0);
-setTimeout(giInstallOnce, 300);
-setTimeout(giInstallOnce, 900);
+window.addEventListener('gi:state', refreshProfile);
+window.addEventListener('gi:store-ready', () => { platformStore.sync().then(() => { refreshProfile(); install(); }); });
+setTimeout(install, 0); setTimeout(install, 300); setTimeout(install, 900);
