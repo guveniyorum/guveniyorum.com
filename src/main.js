@@ -1,3 +1,6 @@
+import { topbar } from './product-app.js';
+import { readAuthSession, writeAuthSession, signOutAuth } from './platform-store.js';
+
 const sidebarItems = [
   ['/', 'Ana Sayfa'],
   ['/marka-ligi', 'Marka Ligi'],
@@ -170,7 +173,8 @@ function simplePage(title, subtitle, items) {
 }
 
 function authPage(type) {
-  return pageHeader(type, type === 'Üye Ol' ? 'Hesabını oluştur, markaları takip et ve güven skorlarına göre karar ver.' : 'Değerlendirdiğin markalara ve şikayet geçmişine eriş.') + `<section class="panel form-panel"><label>E-posta<input type="email" placeholder="ornek@eposta.com"></label><label>Şifre<input type="password" placeholder="••••••••"></label>${button(type, 'demo')}</section>`;
+  const isRegister = type === 'Üye Ol';
+  return pageHeader(type, isRegister ? 'Hesabını oluştur, markaları takip et ve güven skorlarına göre karar ver.' : 'Değerlendirdiğin markalara ve şikayet geçmişine eriş.') + `<section class="panel form-panel auth-panel"><form data-action="authSubmit" class="auth-form"><label>Ad Soyad<input name="displayName" placeholder="Yeni Üye"></label><label>E-posta<input name="email" type="email" placeholder="ornek@eposta.com" required></label><label>Şifre<input name="password" type="password" placeholder="••••••••"></label><button type="submit" class="btn primary">${type}</button></form><div class="card-actions">${button('Google ile Devam Et', 'oauthLogin', 'ghost')}${button('Profil Özeti', 'profileSummary', 'ghost')}</div></section>`;
 }
 
 const pages = {
@@ -199,10 +203,6 @@ function sidebar(currentPath) {
   return `<aside class="sidebar"><div class="brand"><strong>Güveniyorum</strong><span>Kontrol Sende</span></div><nav>${sidebarItems.map(([path, label]) => routeLink(path, label, normalizePath(currentPath) === path ? 'active' : '')).join('')}</nav><div class="sidebar-stats"><span>Online Kullanıcı <b>1,247</b></span><span>Aktif Yarışma <b>3</b></span><span>Günlük Ödül <b>₺2,500</b></span><span>Güven Skoru <b>%98.5</b></span></div></aside>`;
 }
 
-function topbar() {
-  return `<header class="topbar"><button type="button" class="menu-toggle" data-action="toggleMenu">☰</button><input type="search" placeholder="Marka ara, şikayet bul, kullanıcı ara..."><div class="top-actions"><button type="button" data-action="demo" data-label="Bildirimler">🔔</button><button type="button" data-action="demo" data-label="Mesajlar">✉</button><button type="button" data-action="demo" data-label="Ayarlar">⚙</button>${routeLink('/giris-yap', 'Giriş Yap', 'btn ghost')}${routeLink('/uye-ol', 'Üye Ol', 'btn primary')}</div></header>`;
-}
-
 function modal(title, text) {
   return `<div class="modal-backdrop"><section class="modal"><button type="button" class="modal-close" data-action="closeModal">×</button><h2>${title}</h2><p>${text}</p><button type="button" class="btn primary" data-action="closeModal">Tamam</button></section></div>`;
 }
@@ -210,7 +210,7 @@ function modal(title, text) {
 function render() {
   const currentPath = normalizePath(window.location.pathname);
   const page = pages[currentPath] || pages['/'];
-  document.querySelector('#root').innerHTML = `${sidebar(currentPath)}<main class="app-shell">${topbar()}<div class="content-wrap">${page()}</div></main><button type="button" class="live-support" data-action="demo" data-label="Canlı Destek">Canlı Destek</button><div id="modalRoot"></div>`;
+  document.querySelector('#root').innerHTML = `${sidebar(currentPath)}<main class="app-shell">${topbar(routeLink)}<div class="content-wrap">${page()}</div></main><button type="button" class="live-support" data-action="demo" data-label="Canlı Destek">Canlı Destek</button><div id="modalRoot"></div>`;
 }
 
 function showModal(title, text = 'Bu aksiyon demo state olarak çalışıyor; kullanıcı akışı boş bırakılmadı.') {
@@ -225,6 +225,21 @@ function handleAction(action, label, target) {
   if (action === 'test') return showModal('Psikolojik Test Başladı', 'Soru 1/15 kayıt altına alındı. Test sonunda güçlü yönler, dikkat edilmesi gerekenler ve kişisel öneriler gösterilecek.');
   if (action === 'aiExpert') { state.activeAi = label; render(); return showModal(label, `${label} seçildi. Yeni yanıtlar bu uzman profiliyle üretilecek.`); }
   if (action === 'quickQuestion') return showModal(label, `${state.activeAi} hızlı sorunu analiz etti ve güvenli karar önerisi hazırladı.`);
+  if (action === 'profileSummary') {
+    const session = readAuthSession();
+    if (!session) return showModal('Misafir Kullanıcı', 'Profil özetini görmek için giriş yapmalısın.');
+    return showModal('Profil Özeti', `${session.displayName || session.email} · ${session.level || 'Yeni Üye'} · ₺${session.wallet || 0} · ${session.xp || 0} XP`);
+  }
+  if (action === 'signOut') {
+    signOutAuth(window.supabaseClient || window.supabase);
+    render();
+    return showModal('Çıkış Yapıldı', 'Oturum kapatıldı. Giriş Yap ve Üye Ol butonları yeniden gösteriliyor.');
+  }
+  if (action === 'oauthLogin') {
+    writeAuthSession({ email: 'oauth@guveniyorum.com', displayName: 'OAuth Kullanıcısı', provider: 'oauth' });
+    render();
+    return showModal('OAuth Girişi Başarılı', 'Demo OAuth oturumu oluşturuldu.');
+  }
   if (action === 'demo') return showModal(label || 'Detay', 'Detay paneli açıldı. Bu buton route, modal veya demo state üreterek boş kalmıyor.');
 }
 
@@ -240,7 +255,20 @@ function handleSubmit(action, form) {
     state.aiMessages.push(message, `${state.activeAi}: Mesajını aldım. Güven skoru, risk sinyalleri ve sorumlu kullanım açısından değerlendirme hazırladım.`);
     render();
   }
+  if (action === 'authSubmit') {
+    const email = form.elements.email.value.trim();
+    const displayName = form.elements.displayName.value.trim() || email;
+    if (!email) return;
+    writeAuthSession({ email, displayName, provider: 'email' });
+    navigate('/');
+    showModal('Giriş Başarılı', 'Oturum açıldı. Üst barda kullanıcı rozeti, cüzdan/XP bilgisi ve Çıkış butonu gösteriliyor.');
+  }
 }
+
+window.addEventListener('guveniyorum-auth-change', () => render());
+window.addEventListener('storage', (event) => {
+  if (event.key === 'guveniyorum-auth-session-v1') render();
+});
 
 document.addEventListener('click', (event) => {
   const route = event.target.closest('[data-route]');

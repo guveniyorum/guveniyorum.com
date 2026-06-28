@@ -32,6 +32,8 @@ rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/src', { recursive: true });
 copyFileSync('index.html', 'dist/index.html');
 copyFileSync('src/main.js', 'dist/src/main.js');
+copyFileSync('src/product-app.js', 'dist/src/product-app.js');
+copyFileSync('src/platform-store.js', 'dist/src/platform-store.js');
 copyFileSync('src/styles.css', 'dist/src/styles.css');
 copyFileSync('_redirects', 'dist/_redirects');
 copyFileSync('vercel.json', 'dist/vercel.json');
