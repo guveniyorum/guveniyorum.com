@@ -1,5 +1,45 @@
-const STORAGE_KEY = 'guveniyorum-diamond-state-v1';
+const STORAGE_KEY = 'guveniyorum-diamond-state-v2';
+const LEGACY_STORAGE_KEY = 'guveniyorum-diamond-state-v1';
 const AUTH_STORAGE_KEY = 'guveniyorum-auth-session-v1';
+
+const complaintBaseStats = {
+  resolved: 1246,
+  reviewed: 86,
+  bestResolution: '%98',
+};
+
+const initialComplaints = [
+  {
+    id: 'GVN-2026-0001',
+    brand: 'BetSafe',
+    category: 'Para çekme',
+    title: 'Ödeme gecikmesi çözüldü',
+    details: 'Kullanıcı ödeme talebinin tamamlandığını doğruladı.',
+    status: 'Çözüldü',
+    createdAt: '2026-06-26T09:30:00.000Z',
+    updatedAt: '2026-06-26T12:18:00.000Z',
+  },
+  {
+    id: 'GVN-2026-0002',
+    brand: 'TürkBahis',
+    category: 'KYC / belge',
+    title: 'Belge onayı bekliyor',
+    details: 'Kullanıcı ek belge talebine yanıt verdi, marka onayı bekleniyor.',
+    status: 'Açık',
+    createdAt: '2026-06-27T08:20:00.000Z',
+    updatedAt: '2026-06-27T08:20:00.000Z',
+  },
+  {
+    id: 'GVN-2026-0003',
+    brand: 'KaçınBet',
+    category: 'Destek kalitesi',
+    title: 'Destekten dönüş alınamadı',
+    details: 'Canlı destek görüşmesi sonrası çözüm yanıtı henüz gelmedi.',
+    status: 'Açık',
+    createdAt: '2026-06-28T17:45:00.000Z',
+    updatedAt: '2026-06-28T17:45:00.000Z',
+  },
+];
 
 const initialState = {
   route: normalize(location.pathname),
@@ -12,6 +52,7 @@ const initialState = {
   contribution: 89,
   riskScore: 25,
   toast: '',
+  complaints: initialComplaints.map((complaint) => ({ ...complaint })),
   feed: [
     'BetSafe ödeme gecikmesi çözüldü · +75 puan',
     'AyşeK çözüm onayı verdi · ödül uygunluğu yükseldi',
@@ -24,6 +65,8 @@ const initialState = {
 
 const saved = readStore();
 const state = { ...initialState, ...saved, route: normalize(location.pathname) };
+state.complaints = normalizeComplaints(state.complaints);
+state.feed = Array.isArray(state.feed) ? state.feed : initialState.feed;
 
 const brands = [
   {
@@ -78,7 +121,11 @@ function normalize(path) {
 }
 
 function readStore() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+  try {
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) return JSON.parse(current);
+    return JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || '{}');
+  } catch { return {}; }
 }
 
 function readAuthSession() {
@@ -92,6 +139,7 @@ function saveStore() {
     level: state.level,
     contribution: state.contribution,
     riskScore: state.riskScore,
+    complaints: state.complaints,
     feed: state.feed,
     aiMessages: state.aiMessages,
   };
@@ -101,6 +149,19 @@ function saveStore() {
 function money(value) { return new Intl.NumberFormat('tr-TR').format(value); }
 function root() { return document.getElementById('root'); }
 function avatarInitial(user) { return escapeHtml((user?.displayName || user?.email || 'Ü').trim().slice(0, 1).toLocaleUpperCase('tr-TR') || 'Ü'); }
+function normalizeComplaints(value) {
+  const source = Array.isArray(value) ? value : initialComplaints;
+  return source.map((complaint, index) => ({ ...(initialComplaints[index] || {}), ...complaint }));
+}
+function isSolved(complaint) { return complaint.status === 'Çözüldü'; }
+function setLevelFromPoints() {
+  if (state.points >= 2000) state.level = 'Diamond';
+  else if (state.points >= 1300) state.level = 'Elite';
+  else if (state.points >= 1000) state.level = 'Uzman';
+  else if (state.points >= 500) state.level = 'Aktif';
+  else state.level = 'Yeni Üye';
+}
+function boostContribution(amount) { state.contribution = Math.min(100, state.contribution + amount); }
 
 function installStyles() {
   if (document.getElementById('diamond-style')) return;
@@ -112,7 +173,7 @@ function installStyles() {
     .app{height:100vh;display:grid;grid-template-columns:204px minmax(0,1fr);overflow:hidden;background:radial-gradient(900px 540px at 74% 0,rgba(37,240,132,.14),transparent 62%),radial-gradient(760px 500px at 46% 28%,rgba(139,61,255,.13),transparent 60%),linear-gradient(180deg,#07111f,#091424)}
     .sidebar{height:100vh;background:linear-gradient(180deg,#07101d,#081120 58%,#050a13);border-right:1px solid var(--line);padding:16px 10px;overflow:auto;z-index:5}.brand{display:flex;align-items:center;gap:10px;margin:0 0 20px}.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--green),#14b8a6);box-shadow:0 0 28px rgba(37,240,132,.34);color:#06120b;font-weight:950}.brand b{display:block;font-size:14px}.brand small{color:var(--green2);font-size:10px}.nav{display:grid;gap:4px}.nav a{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;min-height:38px;padding:9px 10px;border:1px solid transparent;border-radius:11px;color:#b9c7d9;font-size:12px;line-height:1.25}.nav a.active,.nav a:hover{background:rgba(37,240,132,.11);border-color:rgba(37,240,132,.28);color:#fff}.badge{border-radius:999px;padding:2px 6px;font-size:9px;font-weight:900;background:rgba(37,240,132,.14);color:#86ffb2;border:1px solid rgba(37,240,132,.24)}.badge.red{background:rgba(255,77,109,.17);color:#ffa0ad}.badge.purple{background:rgba(139,61,255,.19);color:#d9c8ff}.sidecard{margin-top:20px;border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:14px;padding:12px;color:var(--muted);font-size:11px}.sidecard div{display:flex;justify-content:space-between;margin:7px 0}.sidecard strong{color:var(--green2)}
     .main{height:100vh;min-width:0;display:grid;grid-template-rows:56px minmax(0,1fr);overflow:hidden}.topbar{height:56px;background:rgba(7,13,23,.90);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px}.hamb{display:none}.search{width:min(520px,48vw);height:36px;background:#0d1828;border:1px solid rgba(178,204,255,.18);border-radius:10px;color:#dfeaff;padding:0 14px;outline:none}.topspacer{flex:1}.iconbtn,.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.045);color:#fff;padding:10px 14px;font-size:12px;font-weight:900;min-height:36px}.iconbtn{width:32px;height:32px;padding:0}.btn.green{background:linear-gradient(135deg,var(--green),#16a34a);color:#04120b;border-color:rgba(37,240,132,.56);box-shadow:0 0 34px rgba(37,240,132,.18)}.btn.purple{background:linear-gradient(135deg,var(--purple),#9333ea);border-color:rgba(147,51,234,.55)}.btn.red{background:linear-gradient(135deg,#be123c,#e11d48);border-color:rgba(255,77,109,.55)}
-    .scroll{height:calc(100vh - 56px);overflow:auto;scroll-behavior:smooth;overscroll-behavior:contain}.scroll::-webkit-scrollbar,.sidebar::-webkit-scrollbar{width:10px}.scroll::-webkit-scrollbar-thumb,.sidebar::-webkit-scrollbar-thumb{background:rgba(148,163,184,.22);border-radius:99px}.section{padding:72px 24px}.wrap{max-width:1080px;margin:0 auto}.center{text-align:center}.kicker{display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;border:1px solid rgba(37,240,132,.28);background:rgba(37,240,132,.10);color:#9effbd;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:950;letter-spacing:.02em}.kicker.red{border-color:rgba(255,77,109,.38);background:rgba(255,77,109,.13);color:#ffa1ae}.kicker.purple{border-color:rgba(139,61,255,.35);background:rgba(139,61,255,.15);color:#dac8ff}.kicker.amber{border-color:rgba(248,184,78,.36);background:rgba(248,184,78,.14);color:#ffd48a}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(46px,6vw,82px);line-height:.94;letter-spacing:-.078em;font-weight:950;margin-bottom:16px}h2{font-size:clamp(32px,4vw,50px);line-height:1;letter-spacing:-.06em;font-weight:950;margin-bottom:14px}h3{font-size:19px}.grad{background:linear-gradient(135deg,#fff 8%,#85ffb4 50%,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}.sub{max-width:760px;margin:0 auto 24px;color:var(--muted);font-size:16px;line-height:1.6}.actions{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-top:18px}.grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(4,1fr);max-width:760px;margin:30px auto 0}.card,.stat,.site,.panel,.form,.row,.live{border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.024));border-radius:var(--radius);box-shadow:var(--shadow)}.stat{padding:18px;text-align:center}.stat b{display:block;font-size:27px}.stat span{display:block;color:var(--muted);font-size:11px;margin-top:5px}.panel,.card,.form{padding:20px}.panel p,.card p,.form p,.site p{color:#a7b8ca;line-height:1.55}.cards2{grid-template-columns:repeat(2,1fr)}.cards3{grid-template-columns:repeat(3,1fr)}.cards4{grid-template-columns:repeat(4,1fr)}.split{grid-template-columns:1.05fr .95fr}.siteList{max-width:850px;margin:24px auto 0;display:grid;gap:16px}.site{padding:20px;text-align:left;position:relative;overflow:hidden}.site.danger{border-color:rgba(255,77,109,.32);background:linear-gradient(120deg,rgba(82,19,34,.58),rgba(255,255,255,.018))}.siteHead{display:flex;align-items:center;gap:12px}.medal{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(37,240,132,.12);font-size:19px}.score{margin-left:auto;color:var(--green2);font-size:32px;font-weight:950}.danger .score{color:#ff7188}.chip{display:inline-flex;border-radius:999px;background:#eafdf0;color:#0c3d23;padding:3px 7px;font-size:10px;font-weight:900;margin:2px}.chip.dark{background:rgba(255,255,255,.07);color:#c9d7e8;border:1px solid var(--line)}.metrics{grid-template-columns:repeat(5,1fr);gap:9px;margin-top:12px}.metric{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035);padding:10px;text-align:center}.metric b{display:block}.metric span{font-size:10px;color:#98a9bc}.tabs{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:24px 0}.tab{border:1px solid var(--line);background:rgba(255,255,255,.04);color:#c9d7ea;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:850}.tab.active{background:linear-gradient(135deg,var(--green),#16a34a);border-color:transparent;color:#04120b}.input,.select,.textarea{width:100%;border:1px solid rgba(255,255,255,.15);background:#0b1524;color:#eaf3ff;border-radius:12px;padding:12px;margin:7px 0;outline:none}.textarea{min-height:110px;resize:vertical}.mission{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:12px;margin:9px 0}.mission small,.muted{color:var(--muted)}.progress{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(178,204,255,.12)}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--green2));width:var(--w,50%)}.feed p{border-bottom:1px solid rgba(178,204,255,.10);padding:10px 0;margin:0;color:#cbd8e6}.row{display:grid;grid-template-columns:1.4fr repeat(4,.8fr);gap:10px;align-items:center;padding:14px;text-align:left}.row span{color:#9aacc2;font-size:12px}.chat{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px}.expert{padding:12px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.035);margin-bottom:8px}.expert.active{background:linear-gradient(135deg,var(--purple),#6d5dfc)}.chatbox{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.045);overflow:hidden}.chathead{padding:14px 16px;background:linear-gradient(135deg,var(--purple),#9333ea);font-weight:950;display:flex;justify-content:space-between}.msgs{padding:16px;height:260px;overflow:auto}.msg{max-width:78%;border-radius:14px;padding:12px;margin:10px 0;background:#17243a;color:#dce8f7;font-size:13px}.msg.me{margin-left:auto;background:var(--purple)}.chatinput{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}.chatinput input{flex:1}.toast{position:fixed;right:18px;bottom:18px;background:linear-gradient(135deg,#0e1b2d,#10243b);border:1px solid rgba(37,240,132,.33);box-shadow:0 20px 60px rgba(0,0,0,.35);border-radius:14px;padding:12px 14px;color:#dfffee;font-size:12px;z-index:20}.empty{display:none;color:var(--muted);margin-top:20px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:30}.modalBox{width:min(560px,92vw);border:1px solid var(--line);background:#0b1524;border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+    .scroll{height:calc(100vh - 56px);overflow:auto;scroll-behavior:smooth;overscroll-behavior:contain}.scroll::-webkit-scrollbar,.sidebar::-webkit-scrollbar{width:10px}.scroll::-webkit-scrollbar-thumb,.sidebar::-webkit-scrollbar-thumb{background:rgba(148,163,184,.22);border-radius:99px}.section{padding:72px 24px}.wrap{max-width:1080px;margin:0 auto}.center{text-align:center}.kicker{display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;border:1px solid rgba(37,240,132,.28);background:rgba(37,240,132,.10);color:#9effbd;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:950;letter-spacing:.02em}.kicker.red{border-color:rgba(255,77,109,.38);background:rgba(255,77,109,.13);color:#ffa1ae}.kicker.purple{border-color:rgba(139,61,255,.35);background:rgba(139,61,255,.15);color:#dac8ff}.kicker.amber{border-color:rgba(248,184,78,.36);background:rgba(248,184,78,.14);color:#ffd48a}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(46px,6vw,82px);line-height:.94;letter-spacing:-.078em;font-weight:950;margin-bottom:16px}h2{font-size:clamp(32px,4vw,50px);line-height:1;letter-spacing:-.06em;font-weight:950;margin-bottom:14px}h3{font-size:19px}.grad{background:linear-gradient(135deg,#fff 8%,#85ffb4 50%,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}.sub{max-width:760px;margin:0 auto 24px;color:var(--muted);font-size:16px;line-height:1.6}.actions{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-top:18px}.grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(4,1fr);max-width:760px;margin:30px auto 0}.card,.stat,.site,.panel,.form,.row,.live{border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.024));border-radius:var(--radius);box-shadow:var(--shadow)}.stat{padding:18px;text-align:center}.stat b{display:block;font-size:27px}.stat span{display:block;color:var(--muted);font-size:11px;margin-top:5px}.panel,.card,.form{padding:20px}.panel p,.card p,.form p,.site p{color:#a7b8ca;line-height:1.55}.cards2{grid-template-columns:repeat(2,1fr)}.cards3{grid-template-columns:repeat(3,1fr)}.cards4{grid-template-columns:repeat(4,1fr)}.split{grid-template-columns:1.05fr .95fr}.siteList{max-width:850px;margin:24px auto 0;display:grid;gap:16px}.site{padding:20px;text-align:left;position:relative;overflow:hidden}.site.danger{border-color:rgba(255,77,109,.32);background:linear-gradient(120deg,rgba(82,19,34,.58),rgba(255,255,255,.018))}.siteHead{display:flex;align-items:center;gap:12px}.medal{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(37,240,132,.12);font-size:19px}.score{margin-left:auto;color:var(--green2);font-size:32px;font-weight:950}.danger .score{color:#ff7188}.chip{display:inline-flex;border-radius:999px;background:#eafdf0;color:#0c3d23;padding:3px 7px;font-size:10px;font-weight:900;margin:2px}.chip.dark{background:rgba(255,255,255,.07);color:#c9d7e8;border:1px solid var(--line)}.metrics{grid-template-columns:repeat(5,1fr);gap:9px;margin-top:12px}.metric{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035);padding:10px;text-align:center}.metric b{display:block}.metric span{font-size:10px;color:#98a9bc}.tabs{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:24px 0}.tab{border:1px solid var(--line);background:rgba(255,255,255,.04);color:#c9d7ea;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:850}.tab.active{background:linear-gradient(135deg,var(--green),#16a34a);border-color:transparent;color:#04120b}.input,.select,.textarea{width:100%;border:1px solid rgba(255,255,255,.15);background:#0b1524;color:#eaf3ff;border-radius:12px;padding:12px;margin:7px 0;outline:none}.textarea{min-height:110px;resize:vertical}.mission{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:12px;margin:9px 0}.mission small,.muted{color:var(--muted)}.queue{display:grid;gap:10px}.complaint{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.035);padding:13px}.complaintHead,.complaintFoot{display:flex;align-items:center;justify-content:space-between;gap:12px}.complaint p{font-size:13px;margin:10px 0;color:#a7b8ca}.status{border-radius:999px;border:1px solid rgba(248,184,78,.36);background:rgba(248,184,78,.13);color:#ffd48a;padding:5px 8px;font-size:10px;font-weight:950;white-space:nowrap}.status.solved{border-color:rgba(37,240,132,.32);background:rgba(37,240,132,.13);color:#9effbd}.progress{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(178,204,255,.12)}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--green2));width:var(--w,50%)}.feed p{border-bottom:1px solid rgba(178,204,255,.10);padding:10px 0;margin:0;color:#cbd8e6}.row{display:grid;grid-template-columns:1.4fr repeat(4,.8fr);gap:10px;align-items:center;padding:14px;text-align:left}.row span{color:#9aacc2;font-size:12px}.chat{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px}.expert{padding:12px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.035);margin-bottom:8px}.expert.active{background:linear-gradient(135deg,var(--purple),#6d5dfc)}.chatbox{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.045);overflow:hidden}.chathead{padding:14px 16px;background:linear-gradient(135deg,var(--purple),#9333ea);font-weight:950;display:flex;justify-content:space-between}.msgs{padding:16px;height:260px;overflow:auto}.msg{max-width:78%;border-radius:14px;padding:12px;margin:10px 0;background:#17243a;color:#dce8f7;font-size:13px}.msg.me{margin-left:auto;background:var(--purple)}.chatinput{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}.chatinput input{flex:1}.toast{position:fixed;right:18px;bottom:18px;background:linear-gradient(135deg,#0e1b2d,#10243b);border:1px solid rgba(37,240,132,.33);box-shadow:0 20px 60px rgba(0,0,0,.35);border-radius:14px;padding:12px 14px;color:#dfffee;font-size:12px;z-index:20}.empty{display:none;color:var(--muted);margin-top:20px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:30}.modalBox{width:min(560px,92vw);border:1px solid var(--line);background:#0b1524;border-radius:20px;padding:24px;box-shadow:var(--shadow)}
     @media(max-width:980px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;transform:translateX(-105%);transition:.25s;z-index:10}.sidebar.open{transform:none}.hamb{display:inline-flex}.search{width:42vw}.section{padding:56px 16px}.stats,.cards2,.cards3,.cards4,.metrics,.split,.chat{grid-template-columns:1fr}.row{grid-template-columns:1fr 1fr}h1{font-size:44px}.score{font-size:24px}.topbar .hideMobile{display:none}}
   `;
   document.head.appendChild(style);
@@ -140,8 +201,8 @@ function addFeed(text) {
 
 function gain(points, label) {
   state.points += points;
-  state.contribution = Math.min(100, state.contribution + 1);
-  if (state.points >= 2000) state.level = 'Diamond';
+  boostContribution(1);
+  setLevelFromPoints();
   addFeed(`${label} · +${points} puan`);
   saveStore();
   showToast(`${label}: +${points} puan eklendi.`);
@@ -264,6 +325,111 @@ function tabs() {
   return `<div class="tabs">${items.map(([key, label]) => `<button class="tab ${state.activeFilter === key ? 'active' : ''}" data-filter="${key}">${label}</button>`).join('')}</div>`;
 }
 
+function complaintStats() {
+  return {
+    resolved: complaintBaseStats.resolved + state.complaints.filter(isSolved).length,
+    reviewed: complaintBaseStats.reviewed + state.complaints.length,
+    open: state.complaints.filter((complaint) => !isSolved(complaint)).length,
+    bestResolution: complaintBaseStats.bestResolution,
+  };
+}
+
+function sortedComplaints() {
+  return [...state.complaints].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+}
+
+function complaintTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'az önce';
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
+function nextComplaintId() {
+  const year = new Date().getFullYear();
+  const next = state.complaints.reduce((highest, complaint) => {
+    const match = String(complaint.id).match(/^GVN-(\d{4})-(\d+)$/);
+    return match && Number(match[1]) === year ? Math.max(highest, Number(match[2])) : highest;
+  }, 0) + 1;
+  return `GVN-${year}-${String(next).padStart(4, '0')}`;
+}
+
+function complaintCard(complaint) {
+  const solved = isSolved(complaint);
+  return `
+    <article class="complaint">
+      <div class="complaintHead">
+        <div><b>${escapeHtml(complaint.title)}</b><br><small class="muted">${escapeHtml(complaint.id)} · ${escapeHtml(complaint.brand)} · ${escapeHtml(complaint.category)}</small></div>
+        <span class="status ${solved ? 'solved' : ''}">${complaint.status}</span>
+      </div>
+      <p>${escapeHtml(complaint.details)}</p>
+      <div class="complaintFoot">
+        <small class="muted">${complaintTime(complaint.updatedAt || complaint.createdAt)} güncellendi</small>
+        ${solved ? '<span class="chip">Çözüm onaylandı</span>' : `<button type="button" class="btn green" data-approve-complaint="${escapeHtml(complaint.id)}">Çözüm Onayı</button>`}
+      </div>
+    </article>
+  `;
+}
+
+function complaintQueue() {
+  const list = sortedComplaints();
+  if (!list.length) return '<p class="muted">Henüz canlı şikayet kaydı yok.</p>';
+  return `<div class="queue">${list.map(complaintCard).join('')}</div>`;
+}
+
+function liveComplaint() {
+  const complaint = sortedComplaints()[0];
+  if (!complaint) return { title: 'Canlı şikayet kuyruğu hazır', meta: 'Yeni kayıtlar burada görünecek' };
+  const icon = isSolved(complaint) ? '✅' : '⚠';
+  return {
+    title: `${icon} ${complaint.brand}: ${complaint.title}`,
+    meta: `${complaint.id} · ${complaint.status} · ${complaintTime(complaint.updatedAt || complaint.createdAt)}`,
+  };
+}
+
+function createComplaint(formData) {
+  const brand = formData.get('brand')?.toString().trim() || 'BetSafe';
+  const category = formData.get('category')?.toString().trim() || 'Para çekme';
+  const title = formData.get('title')?.toString().trim();
+  const details = formData.get('details')?.toString().trim();
+  if (!title || !details) {
+    showToast('Şikayet başlığı ve detayını doldurun.');
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const complaint = {
+    id: nextComplaintId(),
+    brand,
+    category,
+    title,
+    details,
+    status: 'Açık',
+    createdAt: now,
+    updatedAt: now,
+  };
+  state.complaints = [complaint, ...state.complaints];
+  state.points += 40;
+  boostContribution(2);
+  setLevelFromPoints();
+  addFeed(`${complaint.id} şikayet kuyruğuna eklendi · +40 puan`);
+  saveStore();
+  showToast(`${complaint.id} oluşturuldu. +40 puan eklendi.`);
+}
+
+function approveComplaint(id) {
+  const complaint = state.complaints.find((item) => item.id === id);
+  if (!complaint || isSolved(complaint)) return;
+  complaint.status = 'Çözüldü';
+  complaint.updatedAt = new Date().toISOString();
+  state.points += 75;
+  state.wallet += 50;
+  boostContribution(3);
+  setLevelFromPoints();
+  addFeed(`${complaint.id} çözüm onayı verildi · +75 puan · ₺50 ödül uygunluğu`);
+  saveStore();
+  showToast(`${complaint.id} çözüldü. +75 puan ve ₺50 cüzdan uygunluğu eklendi.`);
+}
+
 function pointsEngine() {
   const nextPct = Math.min(100, Math.round((state.points % 2000) / 20));
   return `
@@ -298,7 +464,7 @@ function pointsEngine() {
           </div>
         </div>
         <div class="grid split" style="margin-top:16px">
-          <div class="panel feed"><h3>Son Hareketler</h3>${state.feed.map((line) => `<p>${line}</p>`).join('')}</div>
+          <div class="panel feed"><h3>Son Hareketler</h3>${state.feed.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}</div>
           <div class="panel"><h3>Ödül Uygunluğu</h3><p>Doğrulanmış katkılar arttıkça rozet ve ödül talep hakkın yükselir.</p><button class="btn green" data-reward>Ödül Uygunluğunu Hesapla</button></div>
         </div>
       </div>
@@ -307,30 +473,36 @@ function pointsEngine() {
 }
 
 function complaints() {
+  const stats = complaintStats();
+  const live = liveComplaint();
   return `
     <section class="section">
       <div class="wrap">
         <div class="kicker amber">Şikayet Ağı</div>
         <h1>Şikayet, Çözüm ve <span class="grad">İtibar</span> Akışı</h1>
         <p class="sub" style="margin-left:0;text-align:left">Şikayet sadece kayıt değildir. Firma için açık sınav, kullanıcı için puan ve ekosistem için güven sinyalidir.</p>
-        <div class="live panel"><b>✅ BetSafe ödeme sorunu çözüldü</b><br><span class="muted">2 dk önce · +75 katkı puanı · çözüm oranına yansıdı</span></div>
-        <div class="grid stats" style="max-width:none;margin:22px 0">${stat('1,247', 'Çözülen Şikayet')}${stat('89', 'İncelenen Dosya')}${stat('24 saat', 'Ortalama Yanıt')}${stat('%98', 'En İyi Çözüm Oranı')}</div>
+        <div class="live panel"><b>${escapeHtml(live.title)}</b><br><span class="muted">${escapeHtml(live.meta)} · canlı kuyruğa yansıdı</span></div>
+        <div class="grid stats" style="max-width:none;margin:22px 0">${stat(money(stats.resolved), 'Çözülen Şikayet')}${stat(stats.open, 'Açık Şikayet')}${stat(money(stats.reviewed), 'İncelenen Dosya')}${stat(stats.bestResolution, 'En İyi Çözüm Oranı')}</div>
         <div class="grid split">
           <form class="form" data-complaint-form>
             <div class="kicker red">Kanıtlı Şikayet Oluştur</div>
             <select class="select" name="brand"><option>BetSafe</option><option>TürkBahis</option><option>KaçınBet</option></select>
             <select class="select" name="category"><option>Para çekme</option><option>Bonus şartı</option><option>KYC / belge</option><option>Destek kalitesi</option></select>
-            <input class="input" name="title" placeholder="Kısa ve net başlık">
-            <textarea class="textarea" name="details" placeholder="Yaşadığınız sorunu detaylı açıklayın..."></textarea>
+            <input class="input" name="title" placeholder="Kısa ve net başlık" required>
+            <textarea class="textarea" name="details" placeholder="Yaşadığınız sorunu detaylı açıklayın..." required></textarea>
             <button class="btn green" type="submit">Şikayeti Gönder ve +40 Puan Kazan</button>
           </form>
           <div class="panel">
+            <h3>Canlı Şikayet Kuyruğu</h3>
+            ${complaintQueue()}
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
             <h3>Süreç nasıl çalışır?</h3>
             <div class="mission"><span>1. Kullanıcı kanıtlı şikayet oluşturur</span><b>+40</b></div>
             <div class="mission"><span>2. Marka yanıt verir</span><b>Skor</b></div>
             <div class="mission"><span>3. Kullanıcı çözüm onayı verir</span><b>+75</b></div>
             <div class="mission"><span>4. Site ligi güncellenir</span><b>Live</b></div>
-          </div>
         </div>
       </div>
     </section>
@@ -430,7 +602,7 @@ function render() {
     <div class="app">
       ${sidebar()}
       <main class="main">${topbar()}<div class="scroll">${view()}</div></main>
-      ${state.toast ? `<div class="toast">${state.toast}</div>` : ''}
+      ${state.toast ? `<div class="toast">${escapeHtml(state.toast)}</div>` : ''}
     </div>
   `;
   bindEvents();
@@ -466,6 +638,7 @@ function bindEvents() {
   document.querySelector('[data-reward]')?.addEventListener('click', () => {
     state.wallet += 250;
     state.points += 50;
+    setLevelFromPoints();
     addFeed('Sponsor havuzundan ₺250 ödül uygunluğu hesaplandı · +50 puan');
     saveStore();
     showToast('Ödül uygunluğu hesaplandı. Cüzdana ₺250 eklendi.');
@@ -482,8 +655,10 @@ function bindEvents() {
   });
   document.querySelector('[data-complaint-form]')?.addEventListener('submit', (event) => {
     event.preventDefault();
-    gain(40, 'Kanıtlı şikayet oluşturuldu');
-    event.target.reset();
+    createComplaint(new FormData(event.target));
+  });
+  document.querySelectorAll('[data-approve-complaint]').forEach((button) => {
+    button.addEventListener('click', () => approveComplaint(button.dataset.approveComplaint));
   });
   document.querySelector('[data-ai-form]')?.addEventListener('submit', (event) => {
     event.preventDefault();
