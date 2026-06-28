@@ -47,7 +47,7 @@ import('./platform-store.js').then(({ platformStore }) => {
     let profile = null;
     try { profile = await platformStore.signIn(email); } catch (e) { console.warn('Profile bootstrap failed:', e); }
     const displayName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || profile?.displayName || email.split('@')[0];
-    saveUser({ id: authUser?.id || profile?.id || `user-${Date.now()}`, email, displayName, provider, role: profile?.role || 'user' });
+    saveUser({ id: authUser?.id || profile?.id || `user-${Date.now()}`, email, displayName, provider, role: profile?.role || 'user', wallet: profile?.wallet || 0, xp: profile?.xp || 0 });
   }
 
   async function submit(e) {
@@ -89,12 +89,12 @@ import('./platform-store.js').then(({ platformStore }) => {
     const key = userKey();
     if (topbar.dataset.authState === key && (user ? topbar.querySelector('.authSession') : true)) return;
     topbar.dataset.authState = key;
-    topbar.querySelectorAll('.authSession,.authSignout').forEach(n => n.remove());
+    topbar.querySelectorAll('.authSession,.authWallet,.authSignout').forEach(n => n.remove());
     const login = topbar.querySelector('[data-action="signin"]'); const signup = topbar.querySelector('a[href="/uye-ol"]');
     if (user) {
       if (login) login.style.display = 'none';
       if (signup) signup.style.display = 'none';
-      topbar.insertAdjacentHTML('beforeend', `<span class="authSession" data-action="profile"><span class="authAvatar">${initial(user.displayName || user.email)}</span>${esc(user.displayName || user.email)}</span><button class="authSignout" data-auth-signout>Çıkış</button>`);
+      topbar.insertAdjacentHTML('beforeend', `<button type="button" class="authSession" data-action="profile"><span class="authAvatar">${initial(user.displayName || user.email)}</span>${esc(user.displayName || user.email || 'Üye')}</button><span class="btn authWallet hideMobile">₺${Number(user.wallet || 0).toLocaleString('tr-TR')} · ${Number(user.xp || 0).toLocaleString('tr-TR')} XP</span><button type="button" class="authSignout" data-auth-signout>Çıkış</button>`);
     } else {
       if (login) login.style.display = '';
       if (signup) signup.style.display = '';

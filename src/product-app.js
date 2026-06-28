@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'guveniyorum-diamond-state-v1';
+const AUTH_STORAGE_KEY = 'guveniyorum-auth-session-v1';
 
 const initialState = {
   route: normalize(location.pathname),
@@ -80,6 +81,10 @@ function readStore() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
 }
 
+function readAuthSession() {
+  try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null'); } catch { return null; }
+}
+
 function saveStore() {
   const snapshot = {
     points: state.points,
@@ -95,6 +100,7 @@ function saveStore() {
 
 function money(value) { return new Intl.NumberFormat('tr-TR').format(value); }
 function root() { return document.getElementById('root'); }
+function avatarInitial(user) { return escapeHtml((user?.displayName || user?.email || 'Ü').trim().slice(0, 1).toLocaleUpperCase('tr-TR') || 'Ü'); }
 
 function installStyles() {
   if (document.getElementById('diamond-style')) return;
@@ -163,6 +169,9 @@ function sidebar() {
 }
 
 function topbar() {
+  const user = readAuthSession();
+  const authControls = user ? authenticatedTopbar(user) : guestTopbar();
+
   return `
     <header class="topbar">
       <button class="iconbtn hamb" data-menu>☰</button>
@@ -170,10 +179,21 @@ function topbar() {
       <span class="topspacer"></span>
       <button class="iconbtn hideMobile">◌</button>
       <button class="iconbtn hideMobile">⚙</button>
-      <button class="btn hideMobile" data-action="signin">Giriş Yap</button>
-      <a class="btn green" href="/uye-ol" data-route>Üye Ol</a>
+      ${authControls}
     </header>
   `;
+}
+
+function guestTopbar() {
+  return `<button class="btn hideMobile" data-action="signin">Giriş Yap</button><a class="btn green" href="/uye-ol" data-route>Üye Ol</a>`;
+}
+
+function authenticatedTopbar(user) {
+  const display = escapeHtml(user.displayName || user.email || 'Üye');
+  const wallet = money(Number(user.wallet || 0));
+  const xp = money(Number(user.xp || 0));
+
+  return `<button type="button" class="authSession" data-action="profile"><span class="authAvatar">${avatarInitial(user)}</span>${display}</button><span class="btn authWallet hideMobile">₺${wallet} · ${xp} XP</span><button type="button" class="authSignout" data-auth-signout>Çıkış</button>`;
 }
 
 function stat(value, label) { return `<article class="stat"><b>${value}</b><span>${label}</span></article>`; }
