@@ -1,21 +1,21 @@
-import { copyFileSync, mkdirSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 
 const routes = [
   'marka-ligi',
-  'site-ligi',
   'marka-karsilastirma',
+  'site-ligi',
+  'puanlama-motoru',
+  'firma-rekabeti',
+  'kara-liste',
   'kullanici-yarismasi',
   'guven-merkezi',
   'sorumlu-kullanim',
-  'sorumlu-oyun',
   'kullanici-psikolojisi',
-  'oyuncu-psikolojisi',
   'wellness-merkezi',
   'topluluk-merkezi',
   'ai-danisman',
   'sertifikasyon',
   'farkindalik-programlari',
-  'kampanyalar',
   'sohbet',
   'sikayetler',
   'seffaflik-marketplace',
@@ -23,6 +23,16 @@ const routes = [
   'sertifika-basvurusu',
   'marka-yonetimi',
   'yardim',
+  'profil',
+  'profil/sikayetlerim',
+  'profil/puanlarim',
+  'puan-merkezi',
+  'odul-merkezi',
+  'sikayet-et',
+  'admin',
+  'admin/sikayetler',
+  'admin/puanlama',
+  'misafir-kullanici',
   'giris-yap',
   'giris',
   'uye-ol',
@@ -32,9 +42,18 @@ rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/src', { recursive: true });
 copyFileSync('index.html', 'dist/index.html');
 copyFileSync('src/main.js', 'dist/src/main.js');
-copyFileSync('src/product-app.js', 'dist/src/product-app.js');
-copyFileSync('src/platform-store.js', 'dist/src/platform-store.js');
 copyFileSync('src/styles.css', 'dist/src/styles.css');
+
+const envConfig = {
+  supabaseUrl: process.env.VITE_SUPABASE_URL || '',
+  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || '',
+};
+writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
+
+for (const file of ['platform-store.js', 'product-app.js', 'auth-topbar-bridge.js']) {
+  if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
+}
+
 copyFileSync('_redirects', 'dist/_redirects');
 copyFileSync('vercel.json', 'dist/vercel.json');
 
@@ -43,4 +62,4 @@ for (const route of routes) {
   copyFileSync('index.html', `dist/${route}/index.html`);
 }
 
-console.log('Static build completed in dist/ with dashboard direct-route fallbacks.');
+console.log('Static build completed in dist/ with Diamond platform app.');
