@@ -17,11 +17,25 @@ import('./platform-store.js').then(({ platformStore }) => {
     if (document.getElementById('auth-diamond-style')) return;
     const s = document.createElement('style');
     s.id = 'auth-diamond-style';
-    s.textContent = `.authOverlay{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(3,7,14,.76);backdrop-filter:blur(18px);padding:22px}.authCard{width:min(980px,100%);display:grid;grid-template-columns:.95fr 1.05fr;overflow:hidden;border:1px solid rgba(178,204,255,.14);border-radius:24px;background:linear-gradient(135deg,rgba(13,24,41,.98),rgba(7,15,27,.98));box-shadow:0 28px 100px rgba(0,0,0,.48);color:#eef7ff}.authHero{padding:34px;background:radial-gradient(circle at 15% 20%,rgba(37,240,132,.22),transparent 40%),radial-gradient(circle at 90% 0,rgba(139,61,255,.26),transparent 45%),rgba(255,255,255,.025);border-right:1px solid rgba(178,204,255,.14)}.authHero h2{font-size:44px;line-height:.98;letter-spacing:-.06em;margin:0 0 14px}.authHero p,.authFine{color:#9fb1c8;line-height:1.55}.authForm{padding:30px;position:relative}.authTabs,.oauthGrid,.authMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.authTabs{margin-bottom:16px}.authTabs button,.oauth,.authSubmit,.authClose,.authSignout{border:1px solid rgba(178,204,255,.14);border-radius:13px;color:#fff;font-weight:950;background:rgba(255,255,255,.045);padding:12px;cursor:pointer}.authTabs button.active{background:rgba(37,240,132,.12);border-color:rgba(37,240,132,.35)}.oauth{display:flex;align-items:center;justify-content:center;gap:8px;background:#0b1627}.divider{display:flex;align-items:center;gap:12px;color:#94a8bd;font-size:12px;margin:15px 0}.divider:before,.divider:after{content:'';height:1px;background:rgba(178,204,255,.14);flex:1}.authInput{width:100%;background:#081321;border:1px solid rgba(178,204,255,.18);border-radius:13px;color:#fff;padding:13px 14px;outline:none;margin-bottom:10px}.authSubmit{width:100%;background:linear-gradient(135deg,#25f084,#16a34a);color:#04120b;border-color:rgba(37,240,132,.56);box-shadow:0 0 34px rgba(37,240,132,.18)}.authSubmit[disabled]{opacity:.65;cursor:wait}.authError{color:#ffc2cb;background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.28);border-radius:13px;padding:11px;margin-bottom:12px}.authClose{position:absolute;right:16px;top:16px;width:34px;height:34px;padding:0}.authMiniGrid{margin-top:18px}.authMini{border:1px solid rgba(178,204,255,.14);border-radius:16px;padding:16px;background:rgba(255,255,255,.04)}.authMini b{display:block;color:#8affb5;font-size:24px}.authSession{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(37,240,132,.28);background:rgba(37,240,132,.10);border-radius:12px;padding:7px 10px;color:#d9ffe7;font-size:12px;font-weight:900}.authAvatar{width:23px;height:23px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#25f084,#8b3dff);color:#05120a;font-weight:950}.authSignout{padding:9px 12px;font-size:12px}@media(max-width:860px){.authCard{grid-template-columns:1fr}.authHero{border-right:0;border-bottom:1px solid rgba(178,204,255,.14)}.oauthGrid,.authMiniGrid{grid-template-columns:1fr}.authHero h2{font-size:34px}}`;
+    s.textContent = `.authOverlay{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(3,7,14,.76);backdrop-filter:blur(18px);padding:22px}.authCard{width:min(980px,100%);display:grid;grid-template-columns:.95fr 1.05fr;overflow:hidden;border:1px solid rgba(178,204,255,.14);border-radius:24px;background:linear-gradient(135deg,rgba(13,24,41,.98),rgba(7,15,27,.98));box-shadow:0 28px 100px rgba(0,0,0,.48);color:#eef7ff}.authHero{padding:34px;background:radial-gradient(circle at 15% 20%,rgba(37,240,132,.22),transparent 40%),radial-gradient(circle at 90% 0,rgba(139,61,255,.26),transparent 45%),rgba(255,255,255,.025);border-right:1px solid rgba(178,204,255,.14)}.authHero h2{font-size:44px;line-height:.98;letter-spacing:-.06em;margin:0 0 14px}.authHero p,.authFine{color:#9fb1c8;line-height:1.55}.authForm{padding:30px;position:relative}.authTabs,.oauthGrid,.authMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.authTabs{margin-bottom:16px}.authTabs button,.oauth,.authSubmit,.authClose,.authSignout{border:1px solid rgba(178,204,255,.14);border-radius:13px;color:#fff;font-weight:950;background:rgba(255,255,255,.045);padding:12px;cursor:pointer}.authTabs button.active{background:rgba(37,240,132,.12);border-color:rgba(37,240,132,.35)}.oauth{display:flex;align-items:center;justify-content:center;gap:8px;background:#0b1627}.divider{display:flex;align-items:center;gap:12px;color:#94a8bd;font-size:12px;margin:15px 0}.divider:before,.divider:after{content:'';height:1px;background:rgba(178,204,255,.14);flex:1}.authInput{width:100%;background:#081321;border:1px solid rgba(178,204,255,.18);border-radius:13px;color:#fff;padding:13px 14px;outline:none;margin-bottom:10px}.authSubmit{width:100%;background:linear-gradient(135deg,#25f084,#16a34a);color:#04120b;border-color:rgba(37,240,132,.56);box-shadow:0 0 34px rgba(37,240,132,.18)}.authSubmit[disabled]{opacity:.65;cursor:wait}.authError{color:#ffc2cb;background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.28);border-radius:13px;padding:11px;margin-bottom:12px}.authClose{position:absolute;right:16px;top:16px;width:34px;height:34px;padding:0}.authMiniGrid{margin-top:18px}.authMini{border:1px solid rgba(178,204,255,.14);border-radius:16px;padding:16px;background:rgba(255,255,255,.04)}.authMini b{display:block;color:#8affb5;font-size:24px}.authSession{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(37,240,132,.28);background:rgba(37,240,132,.10);border-radius:12px;padding:7px 10px;color:#d9ffe7;font-size:12px;font-weight:900;cursor:pointer}.authAvatar{width:23px;height:23px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#25f084,#8b3dff);color:#05120a;font-weight:950}.authSignout{padding:9px 12px;font-size:12px}.topPanel{position:fixed;right:22px;top:72px;z-index:9998;width:min(360px,calc(100vw - 28px));border:1px solid rgba(178,204,255,.16);border-radius:20px;background:linear-gradient(160deg,rgba(13,24,41,.98),rgba(7,15,27,.98));box-shadow:0 24px 80px rgba(0,0,0,.42);color:#eef7ff;padding:18px}.topPanel h3{margin:0 0 8px;font-size:19px}.topPanel p{margin:0 0 12px;color:#9fb1c8;line-height:1.5}.topPanelRow{display:flex;justify-content:space-between;gap:12px;border:1px solid rgba(178,204,255,.12);border-radius:14px;background:rgba(255,255,255,.04);padding:12px;margin-top:10px}.topPanelRow b{color:#8affb5}.topPanelClose{position:absolute;right:10px;top:10px;border:1px solid rgba(178,204,255,.14);border-radius:10px;background:rgba(255,255,255,.05);color:#fff;width:30px;height:30px;cursor:pointer}.topPanelAction{width:100%;margin-top:12px;border:1px solid rgba(37,240,132,.34);border-radius:13px;background:rgba(37,240,132,.12);color:#d9ffe7;padding:11px;font-weight:900;cursor:pointer}@media(max-width:860px){.authCard{grid-template-columns:1fr}.authHero{border-right:0;border-bottom:1px solid rgba(178,204,255,.14)}.oauthGrid,.authMiniGrid{grid-template-columns:1fr}.authHero h2{font-size:34px}.topPanel{top:64px;right:14px}}`;
     document.head.appendChild(s);
   }
 
   function close() { document.querySelector('[data-auth-overlay]')?.remove(); }
+  function closeTopPanel() { document.querySelector('[data-top-panel]')?.remove(); }
+
+  function openTopPanel(type) {
+    styles();
+    closeTopPanel();
+    const title = type === 'settings' ? 'Hesap ve Güvenlik' : type === 'profile' ? 'Profil Özeti' : 'Bildirimler';
+    const body = type === 'settings'
+      ? `<p>Oturum, tema ve güvenlik ayarlarını buradan yöneteceğiz.</p><div class="topPanelRow"><span>Oturum</span><b>Aktif</b></div><div class="topPanelRow"><span>Auth provider</span><b>${esc(user?.provider || 'E-posta')}</b></div>`
+      : type === 'profile'
+        ? `<p>Giriş yapan kullanıcı platform ekonomisine bağlandı.</p><div class="topPanelRow"><span>Kullanıcı</span><b>${esc(user?.displayName || user?.email || 'Misafir')}</b></div><div class="topPanelRow"><span>Seviye</span><b>Yeni Üye</b></div><div class="topPanelRow"><span>İlk görev</span><b>Değerlendirme yap</b></div>`
+        : `<p>Son güven hareketleri ve şikayet çözüm bildirimleri burada görünecek.</p><div class="topPanelRow"><span>BetSafe çözümü</span><b>+75</b></div><div class="topPanelRow"><span>Profil hazırlandı</span><b>Aktif</b></div>`;
+    document.body.insertAdjacentHTML('beforeend', `<aside class="topPanel" data-top-panel><button class="topPanelClose" data-top-panel-close>×</button><h3>${title}</h3>${body}<button class="topPanelAction" data-top-panel-close>Tamam</button></aside>`);
+  }
+
   function open(nextMode = 'signin') {
     styles(); mode = nextMode; close();
     const title = mode === 'signup' ? 'Premium hesabını oluştur' : 'Premium hesabına giriş yap';
@@ -62,7 +76,12 @@ import('./platform-store.js').then(({ platformStore }) => {
     if (err) { error = err.message; open(mode); }
   }
 
-  async function signOut() { try { await platformStore.supabase?.auth.signOut(); } catch {} saveUser(null); }
+  async function signOut() {
+    try { await platformStore.supabase?.auth.signOut(); } catch {}
+    closeTopPanel();
+    saveUser(null);
+    setTimeout(() => location.replace('/'), 50);
+  }
 
   function paintTopbar() {
     styles();
@@ -75,7 +94,7 @@ import('./platform-store.js').then(({ platformStore }) => {
     if (user) {
       if (login) login.style.display = 'none';
       if (signup) signup.style.display = 'none';
-      topbar.insertAdjacentHTML('beforeend', `<span class="authSession"><span class="authAvatar">${initial(user.displayName || user.email)}</span>${esc(user.displayName || user.email)}</span><button class="authSignout" data-auth-signout>Çıkış</button>`);
+      topbar.insertAdjacentHTML('beforeend', `<span class="authSession" data-action="profile"><span class="authAvatar">${initial(user.displayName || user.email)}</span>${esc(user.displayName || user.email)}</span><button class="authSignout" data-auth-signout>Çıkış</button>`);
     } else {
       if (login) login.style.display = '';
       if (signup) signup.style.display = '';
@@ -84,9 +103,13 @@ import('./platform-store.js').then(({ platformStore }) => {
 
   document.addEventListener('click', (e) => {
     const signIn = e.target.closest('[data-action="signin"]'); const signUp = e.target.closest('a[href="/uye-ol"], [data-action="signup"]');
+    const topIcon = e.target.closest('.topbar .iconbtn:not([data-menu])');
     if (signIn) { e.preventDefault(); e.stopImmediatePropagation(); error = ''; open('signin'); }
     if (signUp) { e.preventDefault(); e.stopImmediatePropagation(); error = ''; open('signup'); }
     if (e.target.closest('[data-auth-close]')) close();
+    if (e.target.closest('[data-top-panel-close]')) closeTopPanel();
+    if (e.target.closest('.authSession')) { e.preventDefault(); openTopPanel('profile'); }
+    if (topIcon) { e.preventDefault(); openTopPanel(topIcon.textContent.includes('⚙') ? 'settings' : 'notifications'); }
     const tab = e.target.closest('[data-auth-mode]'); if (tab) { error = ''; open(tab.dataset.authMode); }
     const provider = e.target.closest('[data-oauth]')?.dataset.oauth; if (provider) oauth(provider);
     if (e.target.closest('[data-auth-signout]')) signOut();
