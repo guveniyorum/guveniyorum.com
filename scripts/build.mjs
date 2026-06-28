@@ -50,7 +50,7 @@ const envConfig = {
 };
 writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
-for (const file of ['platform-store.js', 'product-app.js']) {
+for (const file of ['platform-store.js', 'product-app.js', 'auth-topbar-bridge.js']) {
   if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
 }
 
