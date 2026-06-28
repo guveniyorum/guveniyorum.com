@@ -79,6 +79,9 @@ import('./platform-store.js').then(({ platformStore }) => {
   async function signOut() {
     try { await platformStore.supabase?.auth.signOut(); } catch {}
     closeTopPanel();
+    busy = false;
+    error = '';
+    mode = 'signin';
     saveUser(null);
     setTimeout(() => location.replace('/'), 50);
   }
@@ -90,7 +93,7 @@ import('./platform-store.js').then(({ platformStore }) => {
     if (topbar.dataset.authState === key && (user ? topbar.querySelector('.authSession') : true)) return;
     topbar.dataset.authState = key;
     topbar.querySelectorAll('.authSession,.authWallet,.authSignout').forEach(n => n.remove());
-    const login = topbar.querySelector('[data-action="signin"]'); const signup = topbar.querySelector('a[href="/uye-ol"]');
+    const login = topbar.querySelector('[data-action="signin"]'); const signup = topbar.querySelector('[data-action="signup"]');
     if (user) {
       if (login) login.style.display = 'none';
       if (signup) signup.style.display = 'none';
@@ -102,7 +105,7 @@ import('./platform-store.js').then(({ platformStore }) => {
   }
 
   document.addEventListener('click', (e) => {
-    const signIn = e.target.closest('[data-action="signin"]'); const signUp = e.target.closest('a[href="/uye-ol"], [data-action="signup"]');
+    const signIn = e.target.closest('[data-action="signin"]'); const signUp = e.target.closest('[data-action="signup"]');
     const topIcon = e.target.closest('.topbar .iconbtn:not([data-menu])');
     if (signIn) { e.preventDefault(); e.stopImmediatePropagation(); error = ''; open('signin'); }
     if (signUp) { e.preventDefault(); e.stopImmediatePropagation(); error = ''; open('signup'); }

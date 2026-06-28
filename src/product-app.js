@@ -185,7 +185,7 @@ function topbar() {
 }
 
 function guestTopbar() {
-  return `<button class="btn hideMobile" data-action="signin">Giriş Yap</button><a class="btn green" href="/uye-ol" data-route>Üye Ol</a>`;
+  return `<button type="button" class="btn hideMobile" data-action="signin">Giriş Yap</button><button type="button" class="btn green" data-action="signup">Üye Ol</button>`;
 }
 
 function authenticatedTopbar(user) {
