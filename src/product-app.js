@@ -53,6 +53,11 @@ const initialState = {
   riskScore: 25,
   toast: '',
   complaints: initialComplaints.map((complaint) => ({ ...complaint })),
+  activityLog: [],
+  claimedMissions: {},
+  rewardClaims: {},
+  complaintRewards: {},
+  brandSignals: {},
   feed: [
     'BetSafe ödeme gecikmesi çözüldü · +75 puan',
     'AyşeK çözüm onayı verdi · ödül uygunluğu yükseldi',
@@ -66,6 +71,11 @@ const initialState = {
 const saved = readStore();
 const state = { ...initialState, ...saved, route: normalize(location.pathname) };
 state.complaints = normalizeComplaints(state.complaints);
+state.activityLog = Array.isArray(state.activityLog) ? state.activityLog : [];
+state.claimedMissions = normalizeMap(state.claimedMissions);
+state.rewardClaims = normalizeMap(state.rewardClaims);
+state.complaintRewards = normalizeMap(state.complaintRewards);
+state.brandSignals = normalizeMap(state.brandSignals);
 state.feed = Array.isArray(state.feed) ? state.feed : initialState.feed;
 
 const brands = [
@@ -82,6 +92,7 @@ const brands = [
     resolution: 11, response: 'Yok', trend: '-31%', pool: 'Yok', kind: 'risk', tags: ['Çözüm Oranı Düşük', 'Yanıt Bekleniyor', 'Kullanıcı Uyarısı'],
   },
 ];
+refreshBrandSignals();
 
 const missions = [
   { key: 'daily', title: 'Günlük güven kontrolü', desc: '3 site kartını incele, güven sinyallerini karşılaştır.', points: 5 },
@@ -133,6 +144,7 @@ function readAuthSession() {
 }
 
 function saveStore() {
+  refreshBrandSignals();
   const snapshot = {
     points: state.points,
     wallet: state.wallet,
@@ -140,6 +152,11 @@ function saveStore() {
     contribution: state.contribution,
     riskScore: state.riskScore,
     complaints: state.complaints,
+    activityLog: state.activityLog,
+    claimedMissions: state.claimedMissions,
+    rewardClaims: state.rewardClaims,
+    complaintRewards: state.complaintRewards,
+    brandSignals: state.brandSignals,
     feed: state.feed,
     aiMessages: state.aiMessages,
   };
@@ -149,6 +166,7 @@ function saveStore() {
 function money(value) { return new Intl.NumberFormat('tr-TR').format(value); }
 function root() { return document.getElementById('root'); }
 function avatarInitial(user) { return escapeHtml((user?.displayName || user?.email || 'Ü').trim().slice(0, 1).toLocaleUpperCase('tr-TR') || 'Ü'); }
+function normalizeMap(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function normalizeComplaints(value) {
   const source = Array.isArray(value) ? value : initialComplaints;
   return source.map((complaint, index) => ({ ...(initialComplaints[index] || {}), ...complaint }));
@@ -162,6 +180,40 @@ function setLevelFromPoints() {
   else state.level = 'Yeni Üye';
 }
 function boostContribution(amount) { state.contribution = Math.min(100, state.contribution + amount); }
+function todayKey(date = new Date()) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+function activityId(type, refId) { return `ACT-${type}-${refId}-${Date.now()}`; }
+function hasActivity(type, refId) { return state.activityLog.some((activity) => activity.type === type && activity.refId === refId); }
+function addFeed(text, persist = true) {
+  state.feed = [text, ...state.feed].slice(0, 8);
+  if (persist) saveStore();
+}
+function applyEconomyReward({ type, refId, label, points = 0, wallet = 0, contribution = 1, feed }) {
+  if (hasActivity(type, refId)) return false;
+  state.points += points;
+  state.wallet += wallet;
+  if (points || wallet) boostContribution(contribution);
+  setLevelFromPoints();
+  state.activityLog = [{
+    id: activityId(type, refId),
+    type,
+    refId,
+    label,
+    points,
+    wallet,
+    createdAt: new Date().toISOString(),
+  }, ...state.activityLog].slice(0, 60);
+  if (feed) addFeed(feed, false);
+  return true;
+}
+function markComplaintReward(complaintId, key) {
+  state.complaintRewards[complaintId] = { ...(state.complaintRewards[complaintId] || {}), [key]: true };
+}
+function complaintRewarded(complaintId, key, type) {
+  return Boolean(state.complaintRewards[complaintId]?.[key]) || hasActivity(type, complaintId);
+}
 
 function installStyles() {
   if (document.getElementById('diamond-style')) return;
@@ -194,18 +246,15 @@ function showToast(text) {
   showToast.timer = setTimeout(() => { state.toast = ''; render(); }, 2600);
 }
 
-function addFeed(text) {
-  state.feed = [text, ...state.feed].slice(0, 8);
-  saveStore();
-}
-
 function gain(points, label) {
-  state.points += points;
-  boostContribution(1);
-  setLevelFromPoints();
-  addFeed(`${label} · +${points} puan`);
+  const refId = `${label}:${todayKey()}`;
+  if (!applyEconomyReward({ type: 'manual_gain', refId, label, points, feed: `${label} · +${points} puan` })) {
+    showToast('Bu işlem bugün zaten kaydedildi.');
+    return false;
+  }
   saveStore();
   showToast(`${label}: +${points} puan eklendi.`);
+  return true;
 }
 
 function sidebar() {
@@ -271,11 +320,13 @@ function filteredBrands() {
 
 function brandCard(brand) {
   const danger = brand.kind.includes('risk');
+  const complaintImpact = getBrandComplaintStats(brand.name);
+  const watchBadge = complaintImpact.openComplaints ? chip(complaintImpact.openComplaints > 2 ? 'Yanıt Bekleniyor' : 'İzleniyor', true) : '';
   return `
     <article class="site ${danger ? 'danger' : ''}">
       <div class="siteHead">
         <div class="medal">${danger ? '⚠' : brand.score > 96 ? '💎' : '🏆'}</div>
-        <div><h3>${brand.name} ${chip(brand.badge, danger)}</h3><small class="muted">${brand.slug}.com · ${danger ? 'İnceleme altında' : 'Verified'}</small></div>
+        <div><h3>${brand.name} ${chip(brand.badge, danger)} ${watchBadge}</h3><small class="muted">${brand.slug}.com · ${complaintImpact.scoreImpactLabel}</small></div>
         <strong class="score">${brand.score}%</strong>
       </div>
       <div style="margin:10px 0">${brand.tags.map((tagName, i) => chip(tagName, i > 1)).join('')}</div>
@@ -283,9 +334,9 @@ function brandCard(brand) {
       <div class="grid metrics">
         <div class="metric"><b>${brand.ux}</b><span>UX</span></div>
         <div class="metric"><b>${brand.users}</b><span>Kullanıcı</span></div>
-        <div class="metric"><b>%${brand.resolution}</b><span>Çözüm</span></div>
-        <div class="metric"><b>${brand.response}</b><span>Yanıt</span></div>
-        <div class="metric"><b>${brand.trend}</b><span>Trend</span></div>
+        <div class="metric"><b>${complaintImpact.openComplaints}</b><span>Açık</span></div>
+        <div class="metric"><b>${complaintImpact.solvedComplaints}</b><span>Çözülen</span></div>
+        <div class="metric"><b>%${complaintImpact.resolutionRate}</b><span>Çözüm</span></div>
       </div>
     </article>
   `;
@@ -334,6 +385,32 @@ function complaintStats() {
   };
 }
 
+function getBrandComplaintStats(brandName) {
+  const complaints = state.complaints.filter((complaint) => complaint.brand === brandName);
+  const solvedComplaints = complaints.filter(isSolved).length;
+  const openComplaints = complaints.length - solvedComplaints;
+  const resolutionRate = complaints.length ? Math.round((solvedComplaints / complaints.length) * 100) : 100;
+  let riskLevel = 'Stabil';
+  if (openComplaints >= 3) riskLevel = 'Yüksek Risk';
+  else if (openComplaints >= 1) riskLevel = 'İzleniyor';
+  if (solvedComplaints > openComplaints) riskLevel = 'Çözüm Performansı Güçlü';
+  const scoreImpactLabel = openComplaints >= 3
+    ? 'Risk görünürlüğü arttı'
+    : openComplaints > 0
+      ? 'Yanıt bekleniyor'
+      : solvedComplaints > 0
+        ? 'Çözüm skora olumlu yansıyor'
+        : 'Stabil görünüm';
+  return { totalComplaints: complaints.length, openComplaints, solvedComplaints, resolutionRate, riskLevel, scoreImpactLabel };
+}
+
+function refreshBrandSignals() {
+  state.brandSignals = brands.reduce((signals, brand) => {
+    signals[brand.name] = getBrandComplaintStats(brand.name);
+    return signals;
+  }, {});
+}
+
 function sortedComplaints() {
   return [...state.complaints].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
 }
@@ -364,7 +441,7 @@ function complaintCard(complaint) {
       <p>${escapeHtml(complaint.details)}</p>
       <div class="complaintFoot">
         <small class="muted">${complaintTime(complaint.updatedAt || complaint.createdAt)} güncellendi</small>
-        ${solved ? '<span class="chip">Çözüm onaylandı</span>' : `<button type="button" class="btn green" data-approve-complaint="${escapeHtml(complaint.id)}">Çözüm Onayı</button>`}
+        <span>${solved ? '<span class="chip">Onaylandı</span>' : ''}<button type="button" class="btn ${solved ? '' : 'green'}" data-approve-complaint="${escapeHtml(complaint.id)}">Çözüm Onayı</button></span>
       </div>
     </article>
   `;
@@ -408,26 +485,97 @@ function createComplaint(formData) {
     updatedAt: now,
   };
   state.complaints = [complaint, ...state.complaints];
-  state.points += 40;
-  boostContribution(2);
-  setLevelFromPoints();
-  addFeed(`${complaint.id} şikayet kuyruğuna eklendi · +40 puan`);
+  const awarded = applyEconomyReward({
+    type: 'complaint_create',
+    refId: complaint.id,
+    label: `${complaint.id} şikayet oluşturuldu`,
+    points: 40,
+    contribution: 2,
+    feed: `${complaint.id} şikayet kuyruğuna eklendi · +40 puan`,
+  });
+  if (awarded) markComplaintReward(complaint.id, 'created');
   saveStore();
-  showToast(`${complaint.id} oluşturuldu. +40 puan eklendi.`);
+  showToast(awarded ? `${complaint.id} oluşturuldu. +40 puan eklendi.` : 'Bu şikayet için puan daha önce verildi.');
 }
 
 function approveComplaint(id) {
   const complaint = state.complaints.find((item) => item.id === id);
-  if (!complaint || isSolved(complaint)) return;
+  if (!complaint) return;
+  if (isSolved(complaint) || complaintRewarded(id, 'resolved', 'complaint_resolution')) {
+    showToast('Bu çözüm daha önce onaylandı.');
+    return;
+  }
   complaint.status = 'Çözüldü';
   complaint.updatedAt = new Date().toISOString();
-  state.points += 75;
-  state.wallet += 50;
-  boostContribution(3);
-  setLevelFromPoints();
-  addFeed(`${complaint.id} çözüm onayı verildi · +75 puan · ₺50 ödül uygunluğu`);
+  const awarded = applyEconomyReward({
+    type: 'complaint_resolution',
+    refId: complaint.id,
+    label: `${complaint.id} çözüm onayı`,
+    points: 75,
+    wallet: 50,
+    contribution: 3,
+    feed: `${complaint.id} çözüm onayı verildi · +75 puan · ₺50 ödül uygunluğu`,
+  });
+  if (!awarded) {
+    showToast('Bu çözüm daha önce onaylandı.');
+    return;
+  }
+  markComplaintReward(complaint.id, 'resolved');
   saveStore();
   showToast(`${complaint.id} çözüldü. +75 puan ve ₺50 cüzdan uygunluğu eklendi.`);
+}
+
+function claimMission(missionKey) {
+  const mission = missions.find((item) => item.key === missionKey);
+  if (!mission) return;
+  const today = todayKey();
+  if (state.claimedMissions[mission.key] === today) {
+    showToast('Bu görev bugün zaten tamamlandı.');
+    return;
+  }
+  const awarded = applyEconomyReward({
+    type: 'mission',
+    refId: `${mission.key}:${today}`,
+    label: mission.title,
+    points: mission.points,
+    contribution: 1,
+    feed: `${mission.title} · +${mission.points} puan`,
+  });
+  if (!awarded) {
+    state.claimedMissions[mission.key] = today;
+    saveStore();
+    showToast('Bu görev bugün zaten tamamlandı.');
+    return;
+  }
+  state.claimedMissions[mission.key] = today;
+  saveStore();
+  showToast(`${mission.title}: +${mission.points} puan eklendi.`);
+}
+
+function claimRewardEligibility() {
+  const today = todayKey();
+  if (state.rewardClaims.rewardEligibility === today) {
+    showToast('Ödül uygunluğu bugün zaten hesaplandı.');
+    return;
+  }
+  const awarded = applyEconomyReward({
+    type: 'reward_eligibility',
+    refId: `rewardEligibility:${today}`,
+    label: 'Ödül uygunluğu hesaplandı',
+    points: 50,
+    wallet: 250,
+    contribution: 1,
+    feed: 'Sponsor havuzundan ₺250 ödül uygunluğu hesaplandı · +50 puan',
+  });
+  if (!awarded) {
+    state.rewardClaims.rewardEligibility = today;
+    saveStore();
+    showToast('Ödül uygunluğu bugün zaten hesaplandı.');
+    return;
+  }
+  state.rewardClaims.rewardEligibility = today;
+  saveStore();
+  showToast('Ödül uygunluğu hesaplandı. Cüzdana ₺250 eklendi.');
 }
 
 function pointsEngine() {
@@ -519,11 +667,16 @@ function brandArena() {
         <div class="grid" style="gap:12px">
           ${brands.map((brand, i) => `
             <div class="row">
+              ${(() => {
+                const impact = getBrandComplaintStats(brand.name);
+                return `
               <b>${i === 0 ? '💎' : brand.kind.includes('risk') ? '⚠' : '🚀'} ${brand.name}</b>
-              <span>Güven<br><b>${brand.kind.includes('risk') ? state.riskScore : brand.score}</b></span>
-              <span>Çözüm<br><b>%${brand.resolution}</b></span>
-              <span>Yanıt<br><b>${brand.response}</b></span>
-              <span>Trend<br><b>${brand.trend}</b></span>
+              <span>Açık Dosya<br><b>${impact.openComplaints}</b></span>
+              <span>Çözülen<br><b>${impact.solvedComplaints}</b></span>
+              <span>Çözüm Oranı<br><b>%${impact.resolutionRate}</b></span>
+              <span>Risk Seviyesi<br><b>${impact.riskLevel}</b></span>
+                `;
+              })()}
             </div>
           `).join('')}
         </div>
@@ -533,19 +686,37 @@ function brandArena() {
   `;
 }
 
+function riskTone(riskLevel) {
+  return riskLevel === 'Yüksek Risk' ? 'red' : riskLevel === 'İzleniyor' ? 'amber' : '';
+}
+
+function riskSignalCards() {
+  const rankedBrands = brands
+    .map((brand) => ({ brand, impact: getBrandComplaintStats(brand.name) }))
+    .sort((a, b) => b.impact.openComplaints - a.impact.openComplaints || b.impact.totalComplaints - a.impact.totalComplaints);
+  return rankedBrands.map(({ brand, impact }) => {
+    const tone = riskTone(impact.riskLevel);
+    return `
+      <div class="card">
+        <span class="kicker ${tone}">${impact.riskLevel}</span>
+        <h3>${brand.name}</h3>
+        <p>${impact.openComplaints} açık dosya, ${impact.solvedComplaints} çözülen dosya ve %${impact.resolutionRate} çözüm oranı. ${impact.scoreImpactLabel}.</p>
+        <div>${impact.openComplaints ? chip('Yanıt Bekleniyor', true) : chip('Stabil')}${tone === 'red' ? `${chip('İnceleme Altında', true)}${chip('Kullanıcı Uyarısı', true)}` : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 function riskCenter() {
   return `
     <section class="section">
       <div class="wrap">
         <div class="kicker red">Kara Liste Aksiyon Alanı</div>
         <h1>Risk Uyarı <span class="grad">Merkezi</span></h1>
-        <p class="sub" style="margin-left:0;text-align:left">Kesin suçlayıcı dil yok. Veri tabanlı risk dili var. Kötü hizmet veren marka görünürlük kaybeder.</p>
+        <p class="sub" style="margin-left:0;text-align:left">Kesin hüküm yok. Açık dosya, yanıt bekleme ve çözüm oranı sinyalleri kontrollü risk diliyle gösterilir.</p>
         <div class="grid cards3">
-          <div class="card"><span class="kicker red">Yüksek Risk</span><h3>Çözüm Oranı Düşük</h3><p>Marka yanıt vermezse güven skoru düşer ve görünürlük azalır.</p></div>
-          <div class="card"><span class="kicker red">Çok Sayıda Şikayet</span><h3>Yoğun Alarm</h3><p>Benzer sorunlar otomatik kümelenir ve risk sinyaline dönüşür.</p></div>
-          <div class="card"><span class="kicker amber">İnceleme Altında</span><h3>Hukuki Güvenli Dil</h3><p>Dolandırıcı gibi kesin hüküm veren ifadeler kullanılmaz.</p></div>
+          ${riskSignalCards()}
         </div>
-        <div class="siteList">${brandCard(brands[2])}</div>
       </div>
     </section>
   `;
@@ -631,17 +802,11 @@ function bindEvents() {
   });
   document.querySelectorAll('[data-mission]').forEach((button) => {
     button.addEventListener('click', () => {
-      const mission = missions.find((item) => item.key === button.dataset.mission);
-      if (mission) gain(mission.points, mission.title);
+      claimMission(button.dataset.mission);
     });
   });
   document.querySelector('[data-reward]')?.addEventListener('click', () => {
-    state.wallet += 250;
-    state.points += 50;
-    setLevelFromPoints();
-    addFeed('Sponsor havuzundan ₺250 ödül uygunluğu hesaplandı · +50 puan');
-    saveStore();
-    showToast('Ödül uygunluğu hesaplandı. Cüzdana ₺250 eklendi.');
+    claimRewardEligibility();
   });
   document.querySelector('[data-risk]')?.addEventListener('click', () => {
     state.riskScore = 18;
