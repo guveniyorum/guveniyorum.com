@@ -41,6 +41,37 @@ const initialComplaints = [
   },
 ];
 
+const seedBrandDirectory = [
+  ['betsafe', 'BetSafe', 'Spor & Casino', 98, 4.8, 98, 2.8, 12, 1, 11, 'Düşük Risk', '+12%', ['Diamond Trust', 'Hızlı Yanıt'], 'Yayında', '₺120K', 'Çözüm performansı güçlü'],
+  ['meritroyal', 'MeritRoyal', 'Casino', 96, 4.7, 94, 3.4, 16, 2, 14, 'Düşük Risk', '+9%', ['Premium', 'Stabil'], 'Yayında', '₺95K', 'Kullanıcı deneyimi yükselişte'],
+  ['royalwin', 'RoyalWin', 'Spor', 94, 4.6, 92, 4.1, 19, 3, 16, 'İzleniyor', '+7%', ['Hızlı Destek'], 'Yayında', '₺88K', 'Yanıt süresi izleniyor'],
+  ['turkbahis', 'TürkBahis', 'Spor & Casino', 95, 4.6, 95, 4, 12, 1, 11, 'Düşük Risk', '+18%', ['KYC Hızlı', 'Canlı Destek'], 'Yayında', '₺70K', 'Çözüm performansı güçlü'],
+  ['grandbet', 'GrandBet', 'Spor', 91, 4.4, 88, 5.2, 24, 4, 20, 'İzleniyor', '+4%', ['Takipte'], 'Yayında', '₺64K', 'Yanıt bekleyen dosya var'],
+  ['primeplay', 'PrimePlay', 'Casino', 93, 4.5, 90, 3.8, 18, 2, 16, 'Düşük Risk', '+8%', ['Premium'], 'Yayında', '₺76K', 'Stabil görünüm'],
+  ['megabahis', 'MegaBahis', 'Spor', 87, 4.1, 82, 7.2, 36, 7, 29, 'İzleniyor', '-2%', ['İzleniyor'], 'Yayında', '₺40K', 'Risk görünürlüğü arttı'],
+  ['casinomax', 'CasinoMax', 'Casino', 89, 4.2, 84, 6.4, 31, 5, 26, 'İzleniyor', '+1%', ['Canlı Destek'], 'Yayında', '₺48K', 'Yanıt süresi izleniyor'],
+  ['betroyal', 'BetRoyal', 'Spor & Casino', 92, 4.5, 89, 4.5, 21, 3, 18, 'Düşük Risk', '+6%', ['Stabil'], 'Yayında', '₺58K', 'Stabil görünüm'],
+  ['winarena', 'WinArena', 'Spor', 86, 4, 80, 8, 42, 8, 34, 'İzleniyor', '-4%', ['Takipte'], 'Yayında', '₺35K', 'Risk görünürlüğü arttı'],
+  ['novabet', 'NovaBet', 'Spor', 90, 4.3, 86, 5.8, 27, 4, 23, 'İzleniyor', '+5%', ['Yükselen'], 'Yayında', '₺52K', 'Kullanıcı deneyimi yükselişte'],
+  ['goldenplay', 'GoldenPlay', 'Casino', 88, 4.2, 83, 6.1, 29, 5, 24, 'İzleniyor', '+3%', ['Stabil'], 'Yayında', '₺45K', 'Yanıt bekleyen dosya var'],
+  ['starbahis', 'StarBahis', 'Spor', 84, 3.9, 78, 8.8, 48, 10, 38, 'Yüksek Risk', '-7%', ['İncelemede'], 'İncelemede', '₺28K', 'Risk görünürlüğü arttı'],
+  ['elitebet', 'EliteBet', 'Casino', 91, 4.4, 88, 4.9, 22, 3, 19, 'Düşük Risk', '+6%', ['Premium'], 'Yayında', '₺62K', 'Çözüm performansı güçlü'],
+  ['bahisplus', 'BahisPlus', 'Spor', 85, 4, 79, 7.9, 39, 8, 31, 'İzleniyor', '-1%', ['Takipte'], 'Yayında', '₺34K', 'Yanıt süresi izleniyor'],
+  ['royalbet', 'RoyalBet', 'Spor & Casino', 89, 4.2, 85, 5.6, 30, 5, 25, 'İzleniyor', '+2%', ['Stabil'], 'Yayında', '₺44K', 'Stabil görünüm'],
+  ['jetcasino', 'JetCasino', 'Casino', 90, 4.3, 87, 4.7, 25, 4, 21, 'Düşük Risk', '+5%', ['Hızlı Yanıt'], 'Yayında', '₺50K', 'Kullanıcı deneyimi yükselişte'],
+  ['luckyzone', 'LuckyZone', 'Casino', 83, 3.8, 76, 9.5, 52, 12, 40, 'Yüksek Risk', '-8%', ['İncelemede'], 'İncelemede', '₺22K', 'Risk görünürlüğü arttı'],
+  ['grandroyal', 'GrandRoyal', 'Spor & Casino', 92, 4.5, 90, 4.2, 20, 3, 17, 'Düşük Risk', '+7%', ['Premium'], 'Yayında', '₺66K', 'Çözüm performansı güçlü'],
+  ['apexbet', 'ApexBet', 'Spor', 87, 4.1, 81, 7, 35, 7, 28, 'İzleniyor', '+1%', ['Takipte'], 'Yayında', '₺38K', 'Yanıt bekleyen dosya var'],
+  ['betline', 'BetLine', 'Spor', 86, 4, 80, 7.5, 37, 7, 30, 'İzleniyor', '+2%', ['Stabil'], 'Yayında', '₺36K', 'Yanıt süresi izleniyor'],
+  ['maxwin', 'MaxWin', 'Casino', 88, 4.2, 84, 5.9, 28, 5, 23, 'İzleniyor', '+3%', ['Canlı Destek'], 'Yayında', '₺42K', 'Stabil görünüm'],
+  ['kingarena', 'KingArena', 'Spor', 82, 3.7, 74, 10.2, 56, 14, 42, 'Yüksek Risk', '-9%', ['İncelemede'], 'İncelemede', '₺20K', 'Risk görünürlüğü arttı'],
+  ['safeplay', 'SafePlay', 'Spor & Casino', 97, 4.8, 96, 3.1, 14, 1, 13, 'Düşük Risk', '+10%', ['Diamond Trust'], 'Yayında', '₺92K', 'Çözüm performansı güçlü'],
+].map(([id, name, category, trustScore, userExperienceScore, resolutionRate, avgResponseHours, complaintCount, openComplaintCount, solvedComplaintCount, riskLevel, trend, badges, status, sponsorPool, shortInsight]) => ({
+  id, name, category, trustScore, userExperienceScore, resolutionRate, avgResponseHours, complaintCount, openComplaintCount, solvedComplaintCount, riskLevel, trend, badges, status, sponsorPool, shortInsight,
+  adminNote: '', visible: status !== 'Gizli', slug: id, badge: badges[0], score: trustScore, ux: userExperienceScore, users: `${Math.max(12, Math.round(trustScore * 1.2))}K`, complaints: complaintCount,
+  resolution: resolutionRate, response: `${avgResponseHours}s`, pool: sponsorPool, kind: riskLevel === 'Yüksek Risk' ? 'risk' : 'safe', tags: badges,
+}));
+
 const initialState = {
   route: normalize(location.pathname),
   sidebarOpen: false,
@@ -58,6 +89,10 @@ const initialState = {
   rewardClaims: {},
   complaintRewards: {},
   brandSignals: {},
+  brandDirectory: seedBrandDirectory.map((brand) => ({ ...brand, badges: [...brand.badges], tags: [...brand.tags] })),
+  adminBrandDraft: {},
+  selectedAdminBrand: 'betsafe',
+  brandAdminFeed: [],
   feed: [
     'BetSafe ödeme gecikmesi çözüldü · +75 puan',
     'AyşeK çözüm onayı verdi · ödül uygunluğu yükseldi',
@@ -80,26 +115,17 @@ state.claimedMissions = normalizeMap(state.claimedMissions);
 state.rewardClaims = normalizeMap(state.rewardClaims);
 state.complaintRewards = normalizeMap(state.complaintRewards);
 state.brandSignals = normalizeMap(state.brandSignals);
+state.brandDirectory = normalizeBrandDirectory(state.brandDirectory);
+state.adminBrandDraft = normalizeMap(state.adminBrandDraft);
+state.selectedAdminBrand = state.brandDirectory.some((brand) => brand.id === state.selectedAdminBrand) ? state.selectedAdminBrand : state.brandDirectory[0].id;
+state.brandAdminFeed = Array.isArray(state.brandAdminFeed) ? state.brandAdminFeed : [];
 state.feed = Array.isArray(state.feed) ? state.feed : initialState.feed;
 state.brandOpsSelection = typeof state.brandOpsSelection === 'string' ? state.brandOpsSelection : initialState.brandOpsSelection;
 state.brandOpsActionDraft = typeof state.brandOpsActionDraft === 'string' ? state.brandOpsActionDraft : initialState.brandOpsActionDraft;
 state.brandOpsNoteDraft = typeof state.brandOpsNoteDraft === 'string' ? state.brandOpsNoteDraft : initialState.brandOpsNoteDraft;
 state.brandOpsComplaintDraft = typeof state.brandOpsComplaintDraft === 'string' ? state.brandOpsComplaintDraft : initialState.brandOpsComplaintDraft;
 
-const brands = [
-  {
-    slug: 'betsafe', name: 'BetSafe', badge: 'Diamond Trust', score: 98, ux: 4.8, users: '128K', complaints: 8,
-    resolution: 98, response: '3s', trend: '+12%', pool: '₺120K', kind: 'safe', tags: ['Hızlı Ödeme', 'Çözüm Garantisi', '7/24 Destek'],
-  },
-  {
-    slug: 'turkbahis', name: 'TürkBahis', badge: 'Yükselen Marka', score: 95, ux: 4.6, users: '88K', complaints: 12,
-    resolution: 95, response: '4s', trend: '+18%', pool: '₺70K', kind: 'safe new', tags: ['KYC Hızlı', 'Canlı Destek', 'Düşük Limit'],
-  },
-  {
-    slug: 'kacinbet', name: 'KaçınBet', badge: 'Yüksek Risk', score: 25, ux: 1.8, users: '12K', complaints: 178,
-    resolution: 11, response: 'Yok', trend: '-31%', pool: 'Yok', kind: 'risk', tags: ['Çözüm Oranı Düşük', 'Yanıt Bekleniyor', 'Kullanıcı Uyarısı'],
-  },
-];
+const brands = state.brandDirectory;
 refreshBrandSignals();
 
 const missions = [
@@ -165,6 +191,10 @@ function saveStore() {
     rewardClaims: state.rewardClaims,
     complaintRewards: state.complaintRewards,
     brandSignals: state.brandSignals,
+    brandDirectory: state.brandDirectory,
+    adminBrandDraft: state.adminBrandDraft,
+    selectedAdminBrand: state.selectedAdminBrand,
+    brandAdminFeed: state.brandAdminFeed,
     feed: state.feed,
     brandOpsSelection: state.brandOpsSelection,
     brandOpsActionDraft: state.brandOpsActionDraft,
@@ -182,6 +212,60 @@ function normalizeMap(value) { return value && typeof value === 'object' && !Arr
 function normalizeComplaints(value) {
   const source = Array.isArray(value) ? value : initialComplaints;
   return source.map((complaint, index) => ({ ...(initialComplaints[index] || {}), ...complaint }));
+}
+function clamp(value, min = 0, max = 100) { return Math.max(min, Math.min(max, Number(value) || 0)); }
+function slugify(value) { return String(value || 'brand').toLocaleLowerCase('tr-TR').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `brand-${Date.now()}`; }
+function normalizeBadges(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+function normalizeBrand(brand, fallback = {}) {
+  const badges = normalizeBadges(brand.badges || brand.tags || brand.badge || fallback.badges || fallback.tags || fallback.badge || 'Stabil');
+  const trustScore = clamp(brand.trustScore ?? brand.score ?? fallback.trustScore ?? fallback.score ?? 80);
+  const resolutionRate = clamp(brand.resolutionRate ?? brand.resolution ?? fallback.resolutionRate ?? fallback.resolution ?? 80);
+  const avgResponseHours = Math.max(0, Number(brand.avgResponseHours ?? parseFloat(brand.response) ?? fallback.avgResponseHours ?? 6) || 0);
+  const riskLevel = brand.riskLevel || fallback.riskLevel || (trustScore < 84 ? 'Yüksek Risk' : trustScore < 90 ? 'İzleniyor' : 'Düşük Risk');
+  return {
+    ...fallback,
+    ...brand,
+    id: brand.id || fallback.id || slugify(brand.name || fallback.name),
+    name: brand.name || fallback.name || 'Yeni Marka',
+    category: brand.category || fallback.category || 'Spor & Casino',
+    trustScore,
+    userExperienceScore: Number(brand.userExperienceScore ?? brand.ux ?? fallback.userExperienceScore ?? fallback.ux ?? 4.2),
+    resolutionRate,
+    avgResponseHours,
+    complaintCount: Number(brand.complaintCount ?? brand.complaints ?? fallback.complaintCount ?? fallback.complaints ?? 0),
+    openComplaintCount: Number(brand.openComplaintCount ?? fallback.openComplaintCount ?? 0),
+    solvedComplaintCount: Number(brand.solvedComplaintCount ?? fallback.solvedComplaintCount ?? 0),
+    riskLevel,
+    trend: brand.trend || fallback.trend || '+0%',
+    badges,
+    status: brand.status || fallback.status || 'Yayında',
+    sponsorPool: brand.sponsorPool || brand.pool || fallback.sponsorPool || fallback.pool || '₺0',
+    shortInsight: brand.shortInsight || fallback.shortInsight || 'Stabil görünüm',
+    adminNote: brand.adminNote || fallback.adminNote || '',
+    visible: brand.visible !== false && brand.status !== 'Gizli',
+    slug: brand.slug || fallback.slug || brand.id || fallback.id || slugify(brand.name || fallback.name),
+    badge: badges[0] || 'Stabil',
+    score: trustScore,
+    ux: Number(brand.userExperienceScore ?? brand.ux ?? fallback.userExperienceScore ?? fallback.ux ?? 4.2),
+    users: brand.users || fallback.users || `${Math.max(12, Math.round(trustScore * 1.2))}K`,
+    complaints: Number(brand.complaintCount ?? brand.complaints ?? fallback.complaintCount ?? fallback.complaints ?? 0),
+    resolution: resolutionRate,
+    response: `${avgResponseHours}s`,
+    pool: brand.sponsorPool || brand.pool || fallback.sponsorPool || fallback.pool || '₺0',
+    kind: riskLevel === 'Yüksek Risk' ? 'risk' : riskLevel === 'İzleniyor' ? 'safe watch' : 'safe',
+    tags: badges,
+  };
+}
+function normalizeBrandDirectory(value) {
+  const source = Array.isArray(value) && value.length ? value : seedBrandDirectory;
+  const merged = [...source];
+  seedBrandDirectory.forEach((seed) => {
+    if (!merged.some((brand) => brand.id === seed.id || brand.name === seed.name)) merged.push(seed);
+  });
+  return merged.map((brand) => normalizeBrand(brand, seedBrandDirectory.find((seed) => seed.id === brand.id || seed.name === brand.name)));
 }
 function isSolved(complaint) { return complaint.status === 'Çözüldü'; }
 function setLevelFromPoints() {
@@ -323,7 +407,7 @@ function chip(text, dark = false) { return `<span class="chip ${dark ? 'dark' : 
 
 function filteredBrands() {
   const q = state.search.trim().toLowerCase();
-  return brands.filter((brand) => {
+  return brands.filter((brand) => brand.visible !== false).filter((brand) => {
     const filterOk = state.activeFilter === 'all' || brand.kind.includes(state.activeFilter);
     const searchOk = !q || `${brand.name} ${brand.slug} ${brand.tags.join(' ')}`.toLowerCase().includes(q);
     return filterOk && searchOk;
@@ -388,6 +472,54 @@ function tabs() {
   return `<div class="tabs">${items.map(([key, label]) => `<button class="tab ${state.activeFilter === key ? 'active' : ''}" data-filter="${key}">${label}</button>`).join('')}</div>`;
 }
 
+function leagueCard(item, index) {
+  const tone = riskTone(item.impact.riskLevel);
+  return `
+    <article class="card">
+      <div class="siteHead">
+        <div class="medal">#${index + 1}</div>
+        <div><h3>${escapeHtml(item.name)} ${item.badges.map((badge) => chip(badge, true)).join('')}</h3><small class="muted">${escapeHtml(item.category)} · ${escapeHtml(item.shortInsight)}</small></div>
+        <strong class="score">${Math.round(item.leagueScore)}</strong>
+      </div>
+      <div class="grid metrics">
+        <div class="metric"><b>${item.trustScore}</b><span>Trust</span></div>
+        <div class="metric"><b>%${item.impact.resolutionRate}</b><span>Çözüm</span></div>
+        <div class="metric"><b>${item.impact.openComplaints}</b><span>Açık</span></div>
+        <div class="metric"><b>${item.avgResponseHours}s</b><span>Yanıt</span></div>
+        <div class="metric"><b>${trendLabel(item.trend)}</b><span>Trend</span></div>
+      </div>
+      <div style="margin-top:10px">${chip(item.impact.riskLevel, tone !== '')}${chip(item.status, true)}</div>
+      <div class="actions" style="justify-content:flex-start;margin-top:12px">
+        <button type="button" class="btn">Detay</button>
+        <button type="button" class="btn purple">Karşılaştır</button>
+        <a class="btn" href="/sikayetler" data-route>Şikayetleri Gör</a>
+      </div>
+    </article>
+  `;
+}
+
+function siteLeague() {
+  const list = leagueBrands();
+  const avgTrust = list.length ? Math.round(list.reduce((sum, brand) => sum + brand.trustScore, 0) / list.length) : 0;
+  const fastest = list.length ? Math.min(...list.map((brand) => brand.avgResponseHours)) : 0;
+  const inReview = list.filter((brand) => brand.status === 'İncelemede' || brand.impact.riskLevel === 'Yüksek Risk').length;
+  return `
+    <section class="section">
+      <div class="wrap">
+        <div class="kicker">Public Site Ligi</div>
+        <h1>Marka Güven <span class="grad">Ligi</span></h1>
+        <p class="sub" style="margin-left:0;text-align:left">Kullanıcılar için karar destek ekranı: güven skoru, çözüm performansı, açık dosya sağlığı, yanıt kalitesi ve trend sinyalleri birlikte okunur.</p>
+        <div class="grid stats" style="max-width:none;margin:22px 0">
+          ${stat(list.length, 'Toplam Marka')}${stat(avgTrust, 'Ortalama Güven Skoru')}${stat(`${fastest}s`, 'En Hızlı Yanıt')}${stat(inReview, 'İncelemede Olan Marka')}
+        </div>
+        <div class="grid cards3">
+          ${list.map(leagueCard).join('')}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function complaintStats() {
   return {
     resolved: complaintBaseStats.resolved + state.complaints.filter(isSolved).length,
@@ -398,22 +530,18 @@ function complaintStats() {
 }
 
 function getBrandComplaintStats(brandName) {
+  const brand = brands.find((item) => item.name === brandName);
   const complaints = state.complaints.filter((complaint) => complaint.brand === brandName);
-  const solvedComplaints = complaints.filter(isSolved).length;
-  const openComplaints = complaints.length - solvedComplaints;
-  const resolutionRate = complaints.length ? Math.round((solvedComplaints / complaints.length) * 100) : 100;
-  let riskLevel = 'Stabil';
-  if (openComplaints >= 3) riskLevel = 'Yüksek Risk';
-  else if (openComplaints >= 1) riskLevel = 'İzleniyor';
-  if (solvedComplaints > openComplaints) riskLevel = 'Çözüm Performansı Güçlü';
-  const scoreImpactLabel = openComplaints >= 3
-    ? 'Risk görünürlüğü arttı'
-    : openComplaints > 0
-      ? 'Yanıt bekleniyor'
-      : solvedComplaints > 0
-        ? 'Çözüm skora olumlu yansıyor'
-        : 'Stabil görünüm';
-  return { totalComplaints: complaints.length, openComplaints, solvedComplaints, resolutionRate, riskLevel, scoreImpactLabel };
+  const solvedComplaints = Number(brand?.solvedComplaintCount || 0) + complaints.filter(isSolved).length;
+  const openComplaints = Number(brand?.openComplaintCount || 0) + complaints.filter((complaint) => !isSolved(complaint)).length;
+  const totalComplaints = Math.max(Number(brand?.complaintCount || 0) + complaints.length, solvedComplaints + openComplaints);
+  const resolutionRate = totalComplaints ? Math.round((solvedComplaints / totalComplaints) * 100) : Number(brand?.resolutionRate || 100);
+  let riskLevel = brand?.riskLevel || 'Stabil';
+  if (openComplaints >= 12) riskLevel = 'Yüksek Risk';
+  else if (openComplaints >= 3 && riskLevel !== 'Yüksek Risk') riskLevel = 'İzleniyor';
+  if (solvedComplaints > openComplaints * 3 && riskLevel !== 'Yüksek Risk') riskLevel = 'Düşük Risk';
+  const scoreImpactLabel = openComplaints >= 8 ? 'Risk görünürlüğü arttı' : openComplaints > 0 ? 'Yanıt bekleyen dosya var' : resolutionRate >= 90 ? 'Çözüm performansı güçlü' : 'Stabil görünüm';
+  return { totalComplaints, openComplaints, solvedComplaints, resolutionRate, riskLevel, scoreImpactLabel };
 }
 
 function refreshBrandSignals() {
@@ -460,6 +588,27 @@ function brandOpsMetrics(brandName) {
     resolution,
     avgResponseHours: averageBrandResponseHours(list),
   };
+}
+
+function riskPenalty(riskLevel) {
+  if (riskLevel === 'Yüksek Risk') return 12;
+  if (riskLevel === 'İzleniyor') return 5;
+  return 0;
+}
+
+function leagueBrand(brand) {
+  const impact = getBrandComplaintStats(brand.name);
+  const avgResponseHours = Number(brand.avgResponseHours || 0);
+  const leagueScore = clamp(brand.trustScore + impact.resolutionRate * 0.2 - impact.openComplaints * 2 - avgResponseHours * 0.5 - riskPenalty(impact.riskLevel));
+  return { ...brand, impact, avgResponseHours, leagueScore };
+}
+
+function leagueBrands() {
+  return brands.filter((brand) => brand.visible !== false).map(leagueBrand).sort((a, b) => b.leagueScore - a.leagueScore || b.trustScore - a.trustScore);
+}
+
+function trendLabel(trend) {
+  return String(trend || '+0%').startsWith('-') ? `↓ ${trend}` : `↑ ${trend}`;
 }
 
 function complaintTime(value) {
@@ -622,6 +771,140 @@ function submitBrandAction(formData) {
   saveStore();
   render();
   showToast(`${brandName} için işlem kaydedildi: ${meta.title}.`);
+}
+
+function selectedAdminBrand() {
+  if (state.selectedAdminBrand === '') {
+    return {
+      id: '',
+      name: '',
+      category: 'Spor & Casino',
+      trustScore: 80,
+      userExperienceScore: 4.2,
+      resolutionRate: 80,
+      avgResponseHours: 6,
+      riskLevel: 'İzleniyor',
+      status: 'İncelemede',
+      sponsorPool: '₺0',
+      badges: ['İzleniyor'],
+      adminNote: '',
+      visible: true,
+      ...state.adminBrandDraft,
+    };
+  }
+  return brands.find((brand) => brand.id === state.selectedAdminBrand) || brands[0];
+}
+
+function brandFormValue(brand, key, fallback = '') {
+  return escapeHtml(state.adminBrandDraft[key] ?? brand?.[key] ?? fallback);
+}
+
+function adminFeed(text) {
+  state.brandAdminFeed = [{ text, createdAt: new Date().toISOString() }, ...state.brandAdminFeed].slice(0, 20);
+}
+
+function submitAdminBrand(formData) {
+  const name = formData.get('name')?.toString().trim();
+  if (!name) {
+    showToast('Marka adı gerekli.');
+    return;
+  }
+  const raw = {
+    id: formData.get('id')?.toString().trim() || slugify(name),
+    name,
+    category: formData.get('category')?.toString().trim(),
+    trustScore: formData.get('trustScore'),
+    userExperienceScore: formData.get('userExperienceScore'),
+    resolutionRate: formData.get('resolutionRate'),
+    avgResponseHours: formData.get('avgResponseHours'),
+    riskLevel: formData.get('riskLevel')?.toString(),
+    status: formData.get('status')?.toString(),
+    sponsorPool: formData.get('sponsorPool')?.toString().trim(),
+    badges: normalizeBadges(formData.get('badges')?.toString()),
+    adminNote: formData.get('adminNote')?.toString().trim(),
+    visible: formData.get('visible') === 'on',
+  };
+  const brand = normalizeBrand(raw, brands.find((item) => item.id === raw.id));
+  const index = state.brandDirectory.findIndex((item) => item.id === brand.id);
+  if (index >= 0) state.brandDirectory[index] = brand;
+  else state.brandDirectory.unshift(brand);
+  state.selectedAdminBrand = brand.id;
+  state.adminBrandDraft = {};
+  adminFeed(`${brand.name} marka kaydı güncellendi.`);
+  saveStore();
+  render();
+  showToast('Marka kaydı güncellendi.');
+}
+
+function setAdminBrandStatus(id, mode) {
+  const brand = state.brandDirectory.find((item) => item.id === id);
+  if (!brand) return;
+  if (mode === 'hide') { brand.visible = false; brand.status = 'Gizli'; }
+  if (mode === 'show') { brand.visible = true; brand.status = 'Yayında'; }
+  if (mode === 'reviewed') { brand.visible = true; brand.status = 'İncelendi'; }
+  if (mode === 'review') { brand.status = 'İncelemede'; }
+  adminFeed(`${brand.name} durumu ${brand.status} olarak güncellendi.`);
+  saveStore();
+  render();
+  showToast('Marka kaydı güncellendi.');
+}
+
+function adminBrandPanel() {
+  const brand = selectedAdminBrand();
+  return `
+    <section class="section">
+      <div class="wrap">
+        <div class="kicker purple">Admin Brand Directory</div>
+        <h1>Admin Marka <span class="grad">Yönetimi</span></h1>
+        <p class="sub" style="margin-left:0;text-align:left">İç ekip için marka kaydı, görünürlük, risk, rozet, sponsor havuzu ve operasyon notu yönetimi. Public Site Ligi bu kontrolleri göstermez.</p>
+        <div class="grid split">
+          <div class="panel">
+            <div class="mission"><span>Brand directory</span><b>${brands.length}</b></div>
+            <div class="queue">
+              ${brands.map((item) => `
+                <article class="complaint">
+                  <div class="complaintHead">
+                    <button type="button" class="btn ${item.id === brand.id ? 'purple' : ''}" data-admin-select="${escapeHtml(item.id)}">${escapeHtml(item.name)}</button>
+                    <span class="status ${item.riskLevel === 'Yüksek Risk' ? 'red' : item.riskLevel === 'İzleniyor' ? '' : 'solved'}">${escapeHtml(item.status)}</span>
+                  </div>
+                  <p>${escapeHtml(item.category)} · ${escapeHtml(item.riskLevel)} · ${escapeHtml(item.sponsorPool)} · ${item.visible === false ? 'Gizli' : 'Public görünür'}</p>
+                  <div class="actions" style="justify-content:flex-start;margin-top:8px">
+                    <button class="btn" data-admin-status="show" data-admin-id="${escapeHtml(item.id)}">Show</button>
+                    <button class="btn" data-admin-status="hide" data-admin-id="${escapeHtml(item.id)}">Hide</button>
+                    <button class="btn purple" data-admin-status="reviewed" data-admin-id="${escapeHtml(item.id)}">Mark as Reviewed</button>
+                    <button class="btn" data-admin-status="review" data-admin-id="${escapeHtml(item.id)}">Mark as In Review</button>
+                  </div>
+                </article>
+              `).join('')}
+            </div>
+          </div>
+          <form class="form" data-admin-brand-form>
+            <div class="kicker purple">Add / Edit Brand</div>
+            <input type="hidden" name="id" value="${brandFormValue(brand, 'id')}">
+            <input class="input" name="name" placeholder="Brand Name" value="${brandFormValue(brand, 'name')}" required>
+            <input class="input" name="category" placeholder="Category" value="${brandFormValue(brand, 'category', 'Spor & Casino')}">
+            <div class="grid cards2">
+              <input class="input" name="trustScore" type="number" min="0" max="100" placeholder="Trust Score" value="${brandFormValue(brand, 'trustScore')}">
+              <input class="input" name="userExperienceScore" type="number" min="0" max="5" step="0.1" placeholder="UX Score" value="${brandFormValue(brand, 'userExperienceScore')}">
+              <input class="input" name="resolutionRate" type="number" min="0" max="100" placeholder="Resolution Rate" value="${brandFormValue(brand, 'resolutionRate')}">
+              <input class="input" name="avgResponseHours" type="number" min="0" step="0.1" placeholder="Average Response Hours" value="${brandFormValue(brand, 'avgResponseHours')}">
+            </div>
+            <select class="select" name="riskLevel"><option ${brand.riskLevel === 'Düşük Risk' ? 'selected' : ''}>Düşük Risk</option><option ${brand.riskLevel === 'İzleniyor' ? 'selected' : ''}>İzleniyor</option><option ${brand.riskLevel === 'Yüksek Risk' ? 'selected' : ''}>Yüksek Risk</option></select>
+            <select class="select" name="status"><option ${brand.status === 'Yayında' ? 'selected' : ''}>Yayında</option><option ${brand.status === 'İncelemede' ? 'selected' : ''}>İncelemede</option><option ${brand.status === 'İncelendi' ? 'selected' : ''}>İncelendi</option><option ${brand.status === 'Gizli' ? 'selected' : ''}>Gizli</option></select>
+            <input class="input" name="sponsorPool" placeholder="Sponsor Pool" value="${brandFormValue(brand, 'sponsorPool')}">
+            <input class="input" name="badges" placeholder="Badges comma separated" value="${escapeHtml((brand.badges || []).join(', '))}">
+            <textarea class="textarea" name="adminNote" placeholder="Admin Note">${brandFormValue(brand, 'adminNote')}</textarea>
+            <label class="mission"><span>Visibility</span><input type="checkbox" name="visible" ${brand.visible !== false ? 'checked' : ''}></label>
+            <div class="actions" style="justify-content:flex-start"><button class="btn green" type="submit">Update Brand</button><button class="btn purple" type="button" data-admin-new>Add Brand</button></div>
+          </form>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <h3>Admin Feed</h3>
+          <div class="feed">${(state.brandAdminFeed.length ? state.brandAdminFeed : [{ text: 'Henüz admin hareketi yok.', createdAt: new Date().toISOString() }]).map((item) => `<p>${escapeHtml(item.text)} · ${complaintTime(item.createdAt)}</p>`).join('')}</div>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function claimMission(missionKey) {
@@ -932,7 +1215,7 @@ function view() {
     case '/': return home();
     case '/puanlama-motoru': return pointsEngine();
     case '/sikayetler': return complaints();
-    case '/marka-ligi':
+    case '/marka-ligi': return siteLeague();
     case '/firma-rekabeti': return brandArena();
     case '/kara-liste': return riskCenter();
     case '/sorumlu-kullanim':
@@ -942,6 +1225,7 @@ function view() {
     case '/wellness-merkezi': return generic('Wellness Merkezi', 'Ruh Sağlığı ve Wellness', 'Sağlıklı oyun alışkanlıkları geliştirin, uzman desteği alın ve toplulukla iyileşin.', [['Mindful Gaming', '4 hafta · 8 seans.'], ['Healthy Limits', 'Kontrollü limit alışkanlığı.'], ['Digital Detox', '7 günlük dijital mola.']]);
     case '/sertifikasyon': return generic('Güvenilirliğinizi Belgeleyin', 'Sertifikasyon', 'Firmalar için doğrulanabilir güven sertifikası, denetim ve raporlama modeli.', [['Temel Güven Sertifikası', 'Lisans kontrolü ve şikayet takibi.'], ['Gelişmiş Sertifika', 'KYC, ödeme ve bonus şartları analizi.'], ['Premium Diamond', 'Risk raporu ve marka yöneticisi paneli.']]);
     case '/marka-yonetimi': return brandOperationsPanel();
+    case '/admin-markalar': return adminBrandPanel();
     default: return home();
   }
 }
@@ -996,6 +1280,26 @@ function bindEvents() {
   document.querySelector('[data-brand-action-form]')?.addEventListener('submit', (event) => {
     event.preventDefault();
     submitBrandAction(new FormData(event.target));
+  });
+  document.querySelectorAll('[data-admin-select]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.selectedAdminBrand = button.dataset.adminSelect;
+      state.adminBrandDraft = {};
+      saveStore();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-admin-status]').forEach((button) => {
+    button.addEventListener('click', () => setAdminBrandStatus(button.dataset.adminId, button.dataset.adminStatus));
+  });
+  document.querySelector('[data-admin-brand-form]')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitAdminBrand(new FormData(event.target));
+  });
+  document.querySelector('[data-admin-new]')?.addEventListener('click', () => {
+    state.selectedAdminBrand = '';
+    state.adminBrandDraft = {};
+    render();
   });
   document.querySelector('[data-risk]')?.addEventListener('click', () => {
     state.riskScore = 18;
