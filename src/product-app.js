@@ -63,6 +63,10 @@ const initialState = {
     'AyşeK çözüm onayı verdi · ödül uygunluğu yükseldi',
     'TürkBahis yanıt süresini 4 saate düşürdü',
   ],
+  brandOpsSelection: 'BetSafe',
+  brandOpsActionDraft: 'response_posted',
+  brandOpsNoteDraft: '',
+  brandOpsComplaintDraft: '',
   aiMessages: [
     { role: 'ai', text: 'Kontrol sende. Güven skoru, şikayet çözümü, risk sinyali ve ödül uygunluğunu birlikte okuyabilirim.' },
   ],
@@ -77,6 +81,10 @@ state.rewardClaims = normalizeMap(state.rewardClaims);
 state.complaintRewards = normalizeMap(state.complaintRewards);
 state.brandSignals = normalizeMap(state.brandSignals);
 state.feed = Array.isArray(state.feed) ? state.feed : initialState.feed;
+state.brandOpsSelection = typeof state.brandOpsSelection === 'string' ? state.brandOpsSelection : initialState.brandOpsSelection;
+state.brandOpsActionDraft = typeof state.brandOpsActionDraft === 'string' ? state.brandOpsActionDraft : initialState.brandOpsActionDraft;
+state.brandOpsNoteDraft = typeof state.brandOpsNoteDraft === 'string' ? state.brandOpsNoteDraft : initialState.brandOpsNoteDraft;
+state.brandOpsComplaintDraft = typeof state.brandOpsComplaintDraft === 'string' ? state.brandOpsComplaintDraft : initialState.brandOpsComplaintDraft;
 
 const brands = [
   {
@@ -158,6 +166,10 @@ function saveStore() {
     complaintRewards: state.complaintRewards,
     brandSignals: state.brandSignals,
     feed: state.feed,
+    brandOpsSelection: state.brandOpsSelection,
+    brandOpsActionDraft: state.brandOpsActionDraft,
+    brandOpsNoteDraft: state.brandOpsNoteDraft,
+    brandOpsComplaintDraft: state.brandOpsComplaintDraft,
     aiMessages: state.aiMessages,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
@@ -415,6 +427,41 @@ function sortedComplaints() {
   return [...state.complaints].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
 }
 
+function complaintsByBrand(brandName) {
+  return state.complaints.filter((complaint) => complaint.brand === brandName);
+}
+
+function openComplaintsByBrand(brandName) {
+  return complaintsByBrand(brandName).filter((complaint) => !isSolved(complaint));
+}
+
+function averageBrandResponseHours(complaints) {
+  const values = complaints
+    .map((complaint) => {
+      const created = new Date(complaint.createdAt).getTime();
+      const updated = new Date(complaint.updatedAt || complaint.createdAt).getTime();
+      if (!Number.isFinite(created) || !Number.isFinite(updated) || updated < created) return null;
+      return (updated - created) / (1000 * 60 * 60);
+    })
+    .filter((hours) => hours !== null);
+  if (!values.length) return 0;
+  return Math.max(0, Math.round((values.reduce((sum, item) => sum + item, 0) / values.length) * 10) / 10);
+}
+
+function brandOpsMetrics(brandName) {
+  const list = complaintsByBrand(brandName);
+  const solved = list.filter(isSolved).length;
+  const open = list.length - solved;
+  const resolution = list.length ? Math.round((solved / list.length) * 100) : 100;
+  return {
+    total: list.length,
+    open,
+    solved,
+    resolution,
+    avgResponseHours: averageBrandResponseHours(list),
+  };
+}
+
 function complaintTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'az önce';
@@ -525,6 +572,58 @@ function approveComplaint(id) {
   showToast(`${complaint.id} çözüldü. +75 puan ve ₺50 cüzdan uygunluğu eklendi.`);
 }
 
+function submitBrandAction(formData) {
+  const brandName = formData.get('brand')?.toString().trim() || state.brandOpsSelection;
+  const action = formData.get('action')?.toString().trim() || 'response_posted';
+  const note = formData.get('note')?.toString().trim() || '';
+  const selectedComplaintId = formData.get('complaintId')?.toString().trim() || '';
+  const now = new Date().toISOString();
+
+  let complaint = selectedComplaintId
+    ? state.complaints.find((item) => item.id === selectedComplaintId && item.brand === brandName)
+    : openComplaintsByBrand(brandName)[0];
+
+  const actionMap = {
+    response_posted: { title: 'marka yanıtı paylaşıldı', status: 'Yanıtlandı' },
+    resolution_plan: { title: 'çözüm planı yayınlandı', status: 'Çözüm Planlandı' },
+    needs_info: { title: 'ek bilgi talep edildi', status: 'Ek Bilgi Bekleniyor' },
+    resolved: { title: 'dosya çözüldü', status: 'Çözüldü' },
+  };
+  const meta = actionMap[action] || actionMap.response_posted;
+
+  if (!complaint && action !== 'needs_info') {
+    showToast(`${brandName} için açık şikayet bulunamadı.`);
+    return;
+  }
+
+  if (complaint) {
+    complaint.status = meta.status;
+    complaint.updatedAt = now;
+    if (note) complaint.brandNote = note;
+  }
+
+  const targetLabel = complaint ? `${complaint.id}` : 'genel kayıt';
+  const activity = {
+    id: activityId('brand_ops', `${brandName}:${targetLabel}`),
+    type: 'brand_ops',
+    refId: `${brandName}:${targetLabel}:${now}`,
+    label: `${brandName} · ${targetLabel} · ${meta.title}`,
+    points: 0,
+    wallet: 0,
+    note,
+    createdAt: now,
+  };
+  state.activityLog = [activity, ...state.activityLog].slice(0, 60);
+  addFeed(`${brandName} · ${targetLabel} · ${meta.title}${note ? ` · ${note}` : ''}`, false);
+  state.brandOpsSelection = brandName;
+  state.brandOpsActionDraft = action;
+  state.brandOpsNoteDraft = note;
+  state.brandOpsComplaintDraft = complaint?.id || '';
+  saveStore();
+  render();
+  showToast(`${brandName} için işlem kaydedildi: ${meta.title}.`);
+}
+
 function claimMission(missionKey) {
   const mission = missions.find((item) => item.key === missionKey);
   if (!mission) return;
@@ -620,6 +719,86 @@ function pointsEngine() {
   `;
 }
 
+function brandOperationsPanel() {
+  const selectedBrand = brands.some((brand) => brand.name === state.brandOpsSelection) ? state.brandOpsSelection : brands[0].name;
+  const metrics = brandOpsMetrics(selectedBrand);
+  const brandOpenComplaints = openComplaintsByBrand(selectedBrand);
+  const recentActivity = state.activityLog
+    .filter((activity) => activity.type === 'brand_ops' && activity.label.includes(`${selectedBrand} ·`))
+    .slice(0, 8);
+  const relatedFeed = state.feed.filter((line) => line.includes(selectedBrand)).slice(0, 8);
+
+  return `
+    <section class="section">
+      <div class="wrap">
+        <div class="kicker purple">Brand Operations Panel</div>
+        <h1>Marka Operasyon ve <span class="grad">Yanıt Yönetimi</span></h1>
+        <p class="sub" style="margin-left:0;text-align:left">Marka seç, şikayet metriklerini izle, yanıt aksiyonu işle ve tüm hareketleri canlı feed + aktivite akışında takip et.</p>
+        <div class="panel">
+          <div class="mission" style="margin:0">
+            <div>
+              <b>Marka Seçici</b><br>
+              <small>Panel seçimi local state içinde kalıcıdır.</small>
+            </div>
+            <select class="select" name="brand" data-brand-ops-brand style="max-width:280px;margin:0">
+              ${brands.map((brand) => `<option value="${escapeHtml(brand.name)}" ${brand.name === selectedBrand ? 'selected' : ''}>${escapeHtml(brand.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="grid stats" style="max-width:none;margin:22px 0">
+          ${stat(metrics.total, 'Toplam Şikayet')}
+          ${stat(metrics.open, 'Açık Dosya')}
+          ${stat(metrics.solved, 'Çözülen')}
+          ${stat(`%${metrics.resolution}`, 'Çözüm Oranı')}
+        </div>
+        <div class="grid split">
+          <form class="form" data-brand-action-form>
+            <div class="kicker">Response Actions</div>
+            <input type="hidden" name="brand" value="${escapeHtml(selectedBrand)}">
+            <select class="select" name="action">
+              <option value="response_posted" ${state.brandOpsActionDraft === 'response_posted' ? 'selected' : ''}>Yanıt Gönderildi</option>
+              <option value="resolution_plan" ${state.brandOpsActionDraft === 'resolution_plan' ? 'selected' : ''}>Çözüm Planı Paylaşıldı</option>
+              <option value="needs_info" ${state.brandOpsActionDraft === 'needs_info' ? 'selected' : ''}>Ek Bilgi Talep Edildi</option>
+              <option value="resolved" ${state.brandOpsActionDraft === 'resolved' ? 'selected' : ''}>Dosya Çözüldü</option>
+            </select>
+            <select class="select" name="complaintId">
+              <option value="">Otomatik: en güncel açık dosya</option>
+              ${brandOpenComplaints.map((complaint) => `<option value="${escapeHtml(complaint.id)}" ${state.brandOpsComplaintDraft === complaint.id ? 'selected' : ''}>${escapeHtml(complaint.id)} · ${escapeHtml(complaint.title)}</option>`).join('')}
+            </select>
+            <textarea class="textarea" name="note" placeholder="Opsiyonel marka notu">${escapeHtml(state.brandOpsNoteDraft)}</textarea>
+            <button class="btn green" type="submit">Aksiyonu Kaydet</button>
+            <p class="muted" style="margin:10px 0 0">Ortalama yanıt süresi: <b>${metrics.avgResponseHours} saat</b></p>
+          </form>
+          <div class="panel">
+            <h3>Şikayet Metrikleri ve Akış</h3>
+            <div class="mission"><span>Aktif marka</span><b>${escapeHtml(selectedBrand)}</b></div>
+            <div class="mission"><span>Açık dosya kuyruğu</span><b>${brandOpenComplaints.length}</b></div>
+            <div class="mission"><span>Yanıt / çözüm performansı</span><b>%${metrics.resolution}</b></div>
+            <div class="mission"><span>Ortalama yanıt süresi</span><b>${metrics.avgResponseHours} saat</b></div>
+            <div class="feed" style="margin-top:10px">
+              ${(relatedFeed.length ? relatedFeed : ['Bu marka için henüz feed hareketi yok.']).map((line) => `<p>${escapeHtml(line)}</p>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <h3>Activity Updates</h3>
+          <div class="queue">
+            ${(recentActivity.length ? recentActivity : [{ label: `${selectedBrand} için henüz aksiyon kaydı yok.`, createdAt: new Date().toISOString() }]).map((activity) => `
+              <article class="complaint">
+                <div class="complaintHead">
+                  <b>${escapeHtml(activity.label)}</b>
+                  <small class="muted">${complaintTime(activity.createdAt)}</small>
+                </div>
+                ${activity.note ? `<p>${escapeHtml(activity.note)}</p>` : ''}
+              </article>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function complaints() {
   const stats = complaintStats();
   const live = liveComplaint();
@@ -634,7 +813,7 @@ function complaints() {
         <div class="grid split">
           <form class="form" data-complaint-form>
             <div class="kicker red">Kanıtlı Şikayet Oluştur</div>
-            <select class="select" name="brand"><option>BetSafe</option><option>TürkBahis</option><option>KaçınBet</option></select>
+            <select class="select" name="brand">${brands.map((brand) => `<option>${escapeHtml(brand.name)}</option>`).join('')}</select>
             <select class="select" name="category"><option>Para çekme</option><option>Bonus şartı</option><option>KYC / belge</option><option>Destek kalitesi</option></select>
             <input class="input" name="title" placeholder="Kısa ve net başlık" required>
             <textarea class="textarea" name="details" placeholder="Yaşadığınız sorunu detaylı açıklayın..." required></textarea>
@@ -762,7 +941,7 @@ function view() {
     case '/topluluk-merkezi': return generic('Topluluk Merkezi', 'Birlikte İyileşiyoruz', 'Yorum, şikayet desteği, başarı hikayesi, mentorluk ve ödül sistemi tek yerde çalışır.', [['Forum', 'Deneyim paylaşımı ve faydalı cevaplar.'], ['Etkinlikler', 'Haftalık farkındalık buluşmaları.'], ['Mentorluk', 'Deneyimli üyelerden destek.']]);
     case '/wellness-merkezi': return generic('Wellness Merkezi', 'Ruh Sağlığı ve Wellness', 'Sağlıklı oyun alışkanlıkları geliştirin, uzman desteği alın ve toplulukla iyileşin.', [['Mindful Gaming', '4 hafta · 8 seans.'], ['Healthy Limits', 'Kontrollü limit alışkanlığı.'], ['Digital Detox', '7 günlük dijital mola.']]);
     case '/sertifikasyon': return generic('Güvenilirliğinizi Belgeleyin', 'Sertifikasyon', 'Firmalar için doğrulanabilir güven sertifikası, denetim ve raporlama modeli.', [['Temel Güven Sertifikası', 'Lisans kontrolü ve şikayet takibi.'], ['Gelişmiş Sertifika', 'KYC, ödeme ve bonus şartları analizi.'], ['Premium Diamond', 'Risk raporu ve marka yöneticisi paneli.']]);
-    case '/marka-yonetimi': return generic('Marka İtibarınızı Yönetin', 'Marka Yönetimi', 'Geri bildirimleri yönetin, şikayetleri çözün ve güven skorunuzu artırın.', [['Dashboard', 'Güven skoru, yanıt süresi ve çözüm oranı.'], ['Şikayetler', 'Yanıtla, çözüldü işaretle, takip et.'], ['Analitik', 'Trend, risk ve kullanıcı memnuniyeti.']]);
+    case '/marka-yonetimi': return brandOperationsPanel();
     default: return home();
   }
 }
@@ -807,6 +986,16 @@ function bindEvents() {
   });
   document.querySelector('[data-reward]')?.addEventListener('click', () => {
     claimRewardEligibility();
+  });
+  document.querySelector('[data-brand-ops-brand]')?.addEventListener('change', (event) => {
+    state.brandOpsSelection = event.target.value;
+    state.brandOpsComplaintDraft = '';
+    saveStore();
+    render();
+  });
+  document.querySelector('[data-brand-action-form]')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitBrandAction(new FormData(event.target));
   });
   document.querySelector('[data-risk]')?.addEventListener('click', () => {
     state.riskScore = 18;
