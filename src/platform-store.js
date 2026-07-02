@@ -154,8 +154,8 @@ export async function getCurrentUser(fallbackUser = null) {
   return session?.user || fallbackUser || readAuthFallbackUser();
 }
 
-export async function fetchOwnProfile(fallbackUser = null) {
-  const session = await getCurrentSession();
+export async function fetchOwnProfile(fallbackUser = null, sessionOverride = null) {
+  const session = sessionOverride || await getCurrentSession();
   const authUser = session?.localOnly ? null : session?.user;
   if (!supabase || !authUser?.id) {
     const fallback = fallbackUser || session?.user || readAuthFallbackUser();
@@ -172,15 +172,15 @@ export async function fetchOwnProfile(fallbackUser = null) {
   }
 }
 
-export async function ensureOwnProfile(fallbackUser = null) {
-  const session = await getCurrentSession();
+export async function ensureOwnProfile(fallbackUser = null, sessionOverride = null) {
+  const session = sessionOverride || await getCurrentSession();
   const authUser = session?.localOnly ? null : session?.user;
   const user = authUser || fallbackUser || session?.user || readAuthFallbackUser();
   if (!supabase || !authUser?.id) {
     const profile = localProfileFallback(user);
     return user ? saveProfileToLocalState(profile) : profile;
   }
-  const existing = await fetchOwnProfile(authUser);
+  const existing = await fetchOwnProfile(authUser, session);
   if (existing && !existing.localOnly) return existing;
   const email = authUser.email || fallbackUser?.email || '';
   const payload = {
