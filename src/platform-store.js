@@ -27,6 +27,30 @@ function publicId(state) { return `GVN-${new Date().getFullYear()}-${String(stat
 function mapProfile(row) { return { id: row.id, email: row.email, displayName: row.display_name, role: row.role, level: row.level, xp: row.xp, points: row.points, trustScore: row.trust_score }; }
 function mapBrand(row) { return { id: row.id, name: row.name, slug: row.slug, domain: row.domain, status: row.status, trustScore: row.trust_score, complaintCount: row.complaint_count, solvedCount: row.solved_count, responseTimeHours: row.response_time_hours }; }
 function mapComplaint(row) { return { id: row.id, publicId: row.public_id, userId: row.user_id, brandId: row.brand_id, brandName: row.brand_name, title: row.title, category: row.category, description: row.description, status: row.status, evidenceLevel: row.evidence_level, rewardStatus: row.reward_status, createdAt: row.created_at }; }
+function warnSupabaseRead(label, error) { console.warn(`Supabase ${label} read failed; using local fallback.`, error?.message || error); }
+async function readSupabaseRows(label, query) {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await query();
+    if (error) { warnSupabaseRead(label, error); return []; }
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    warnSupabaseRead(label, error);
+    return [];
+  }
+}
+
+export async function fetchBrandsFromSupabase() {
+  return readSupabaseRows('brands', () => supabase.from('brands').select('id,slug,name,category,trust_score,user_experience_score,resolution_rate,avg_response_hours,complaint_count,open_complaint_count,solved_complaint_count,risk_level,trend,status,sponsor_pool,short_insight,admin_note,visible,created_at,updated_at').eq('visible', true).order('trust_score', { ascending: false }));
+}
+
+export async function fetchBrandLinksFromSupabase() {
+  return readSupabaseRows('brand_links', () => supabase.from('brand_links').select('id,brand_id,website_url,tracking_url,redirect_label,link_status,created_at,updated_at').eq('link_status', 'Aktif'));
+}
+
+export async function fetchBrandScoresFromSupabase() {
+  return readSupabaseRows('brand_scores', () => supabase.from('brand_scores').select('id,brand_id,score_type,score_value,source,note,created_at').order('created_at', { ascending: false }));
+}
 
 async function hydrateFromSupabase() {
   if (!supabase) return loadState();
@@ -53,6 +77,9 @@ async function hydrateFromSupabase() {
 export const platformStore = {
   supabase,
   hasSupabase,
+  fetchBrandsFromSupabase,
+  fetchBrandLinksFromSupabase,
+  fetchBrandScoresFromSupabase,
 
   async sync() { return hydrateFromSupabase(); },
   getState() { return loadState(); },
