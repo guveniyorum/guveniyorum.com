@@ -245,6 +245,10 @@ function normalizeBrand(brand, fallback = {}) {
     sponsorPool: brand.sponsorPool || brand.pool || fallback.sponsorPool || fallback.pool || '₺0',
     shortInsight: brand.shortInsight || fallback.shortInsight || 'Stabil görünüm',
     adminNote: brand.adminNote || fallback.adminNote || '',
+    websiteUrl: brand.websiteUrl ?? fallback.websiteUrl ?? '',
+    trackingUrl: brand.trackingUrl ?? fallback.trackingUrl ?? '',
+    redirectLabel: brand.redirectLabel || fallback.redirectLabel || 'Siteyi İncele',
+    linkStatus: brand.linkStatus || fallback.linkStatus || 'Pasif',
     visible: brand.visible !== false && brand.status !== 'Gizli',
     slug: brand.slug || fallback.slug || brand.id || fallback.id || slugify(brand.name || fallback.name),
     badge: badges[0] || 'Stabil',
@@ -404,6 +408,15 @@ function authenticatedTopbar(user) {
 
 function stat(value, label) { return `<article class="stat"><b>${value}</b><span>${label}</span></article>`; }
 function chip(text, dark = false) { return `<span class="chip ${dark ? 'dark' : ''}">${text}</span>`; }
+function isValidBrandUrl(url) {
+  const value = String(url || '').trim();
+  if (!/^https?:\/\//i.test(value)) return false;
+  try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch { return false; }
+}
+function brandRedirectUrl(brand) {
+  if (brand.linkStatus !== 'Aktif') return '';
+  return [brand.trackingUrl, brand.websiteUrl].find(isValidBrandUrl) || '';
+}
 
 function filteredBrands() {
   const q = state.search.trim().toLowerCase();
@@ -474,6 +487,7 @@ function tabs() {
 
 function leagueCard(item, index) {
   const tone = riskTone(item.impact.riskLevel);
+  const redirectUrl = brandRedirectUrl(item);
   return `
     <article class="card">
       <div class="siteHead">
@@ -493,6 +507,7 @@ function leagueCard(item, index) {
         <button type="button" class="btn">Detay</button>
         <button type="button" class="btn purple">Karşılaştır</button>
         <a class="btn" href="/sikayetler" data-route>Şikayetleri Gör</a>
+        ${redirectUrl ? `<a class="btn" href="${escapeHtml(redirectUrl)}" target="_blank" rel="noopener noreferrer sponsored">${escapeHtml(item.redirectLabel || 'Siteyi İncele')}</a>` : ''}
       </div>
     </article>
   `;
@@ -788,6 +803,10 @@ function selectedAdminBrand() {
       sponsorPool: '₺0',
       badges: ['İzleniyor'],
       adminNote: '',
+      websiteUrl: '',
+      trackingUrl: '',
+      redirectLabel: 'Siteyi İncele',
+      linkStatus: 'Pasif',
       visible: true,
       ...state.adminBrandDraft,
     };
@@ -822,6 +841,10 @@ function submitAdminBrand(formData) {
     sponsorPool: formData.get('sponsorPool')?.toString().trim(),
     badges: normalizeBadges(formData.get('badges')?.toString()),
     adminNote: formData.get('adminNote')?.toString().trim(),
+    websiteUrl: formData.get('websiteUrl')?.toString().trim(),
+    trackingUrl: formData.get('trackingUrl')?.toString().trim(),
+    redirectLabel: formData.get('redirectLabel')?.toString().trim() || 'Siteyi İncele',
+    linkStatus: formData.get('linkStatus')?.toString() || 'Pasif',
     visible: formData.get('visible') === 'on',
   };
   const brand = normalizeBrand(raw, brands.find((item) => item.id === raw.id));
@@ -893,6 +916,13 @@ function adminBrandPanel() {
             <select class="select" name="status"><option ${brand.status === 'Yayında' ? 'selected' : ''}>Yayında</option><option ${brand.status === 'İncelemede' ? 'selected' : ''}>İncelemede</option><option ${brand.status === 'İncelendi' ? 'selected' : ''}>İncelendi</option><option ${brand.status === 'Gizli' ? 'selected' : ''}>Gizli</option></select>
             <input class="input" name="sponsorPool" placeholder="Sponsor Pool" value="${brandFormValue(brand, 'sponsorPool')}">
             <input class="input" name="badges" placeholder="Badges comma separated" value="${escapeHtml((brand.badges || []).join(', '))}">
+            <h3>Yönlendirme Bağlantıları</h3>
+            <input class="input" name="websiteUrl" placeholder="Website URL" value="${brandFormValue(brand, 'websiteUrl')}">
+            <input class="input" name="trackingUrl" placeholder="Tracking / yönlendirme URL" value="${brandFormValue(brand, 'trackingUrl')}">
+            <div class="grid cards2">
+              <input class="input" name="redirectLabel" placeholder="Redirect Button Label" value="${brandFormValue(brand, 'redirectLabel', 'Siteyi İncele')}">
+              <select class="select" name="linkStatus"><option ${brand.linkStatus === 'Aktif' ? 'selected' : ''}>Aktif</option><option ${brand.linkStatus === 'Pasif' ? 'selected' : ''}>Pasif</option><option ${brand.linkStatus === 'İncelemede' ? 'selected' : ''}>İncelemede</option></select>
+            </div>
             <textarea class="textarea" name="adminNote" placeholder="Admin Note">${brandFormValue(brand, 'adminNote')}</textarea>
             <label class="mission"><span>Visibility</span><input type="checkbox" name="visible" ${brand.visible !== false ? 'checked' : ''}></label>
             <div class="actions" style="justify-content:flex-start"><button class="btn green" type="submit">Update Brand</button><button class="btn purple" type="button" data-admin-new>Add Brand</button></div>
