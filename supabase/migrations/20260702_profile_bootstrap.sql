@@ -1,3 +1,19 @@
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid unique,
+  email text,
+  display_name text not null default 'Yeni Kullanıcı',
+  role text not null default 'user',
+  level integer not null default 1,
+  xp integer not null default 0,
+  points integer not null default 0,
+  trust_score integer not null default 70,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.profiles add column if not exists nickname text;
 alter table public.profiles add column if not exists avatar_key text default 'neon-orbit';
 alter table public.profiles add column if not exists bio text default '';

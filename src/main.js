@@ -125,10 +125,16 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
     const nickname = new FormData(e.target).get('nickname')?.toString().trim();
     if (!NICKNAME_RE.test(nickname || '')) { bootstrapError = 'Takma ad 3-24 karakter olmalı; Türkçe harf, sayı, alt çizgi veya tire kullanabilirsin.'; openProfileBootstrap(profileOf()); return; }
     busy = true; bootstrapError = ''; openProfileBootstrap({ ...profileOf(), nickname });
-    const profile = await platformStore.updateOwnProfileProfileFields({ nickname, avatarKey: selectedAvatar, onboardingCompleted: true }, user);
-    saveUser(identityFromProfile(profile, user, user?.email, user?.provider || 'E-posta'));
-    busy = false; closeBootstrap();
-    toast(profile.localOnly ? 'Profil yerel olarak kaydedildi. Bağlantı gelince yeniden eşitlenecek.' : 'Profilin hazır.');
+    try {
+      const profile = await platformStore.updateOwnProfileProfileFields({ nickname, avatarKey: selectedAvatar, onboardingCompleted: true }, user);
+      saveUser(identityFromProfile(profile, user, user?.email, user?.provider || 'E-posta'));
+      busy = false; closeBootstrap();
+      toast(profile.localOnly ? 'Profil yerel olarak kaydedildi. Bağlantı gelince yeniden eşitlenecek.' : 'Profilin hazır.');
+    } catch (err) {
+      busy = false;
+      bootstrapError = err?.message || 'Profil kaydedilemedi. Lütfen bilgileri kontrol edip tekrar dene.';
+      openProfileBootstrap({ ...profileOf(), nickname, avatarKey: selectedAvatar, onboardingCompleted: false });
+    }
   }
 
   async function oauth(provider) {

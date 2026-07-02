@@ -78,6 +78,19 @@ function mapBrand(row) { return { id: row.id, name: row.name, slug: row.slug, do
 function mapComplaint(row) { return { id: row.id, publicId: row.public_id, userId: row.user_id, brandId: row.brand_id, brandName: row.brand_name, title: row.title, category: row.category, description: row.description, status: row.status, evidenceLevel: row.evidence_level, rewardStatus: row.reward_status, createdAt: row.created_at }; }
 function warnSupabaseRead(label, error) { console.warn(`Supabase ${label} read failed; using local fallback.`, error?.message || error); }
 function warnSupabaseProfile(label, error) { console.warn(`Supabase profile ${label} failed; using local fallback.`, error?.message || error); }
+function profileWriteError(message, error) {
+  const next = new Error(message);
+  next.code = error?.code || 'PROFILE_WRITE_FAILED';
+  next.details = error?.details || error?.message || '';
+  next.isProfileWriteError = true;
+  return next;
+}
+function profileWriteMessage(error) {
+  if (error?.code === '23505') return 'Bu takma ad alınmış olabilir. Lütfen farklı bir takma ad dene.';
+  if (error?.code === '42501') return 'Profil kaydedilemedi. Oturum yetkin bu işlem için doğrulanamadı.';
+  if (error?.code === '23514') return 'Takma ad 3-24 karakter aralığında olmalı.';
+  return error?.message || 'Profil kaydedilemedi. Lütfen bilgileri kontrol edip tekrar dene.';
+}
 function localProfileFallback(user = readAuthFallbackUser()) {
   const state = loadState();
   const fallbackUser = user || {};
@@ -198,14 +211,18 @@ export async function updateOwnProfileProfileFields(fields = {}, fallbackUser = 
   const session = await getCurrentSession();
   const authUser = session?.localOnly ? null : session?.user;
   const patch = profilePatch(fields);
-  if (supabase && authUser?.id) {
+  if (supabase) {
+    if (!authUser?.id) throw profileWriteError('Profil kaydedilemedi. Oturum yeniden doğrulanmalı.', { code: 'AUTH_SESSION_MISSING' });
     try {
-      await ensureOwnProfile(authUser);
+      const ensured = await ensureOwnProfile(authUser);
+      if (ensured?.localOnly) throw profileWriteError('Profil kaydedilemedi. Supabase profil satırı doğrulanamadı.', { code: 'PROFILE_ROW_MISSING' });
       const { data, error } = await supabase.from('profiles').update(patch).eq('user_id', authUser.id).select('*').maybeSingle();
-      if (!error && data) return saveProfileToLocalState(mapProfile(data));
-      warnSupabaseProfile('update', error);
+      if (error) throw profileWriteError(profileWriteMessage(error), error);
+      if (!data) throw profileWriteError('Profil kaydedilemedi. Profil satırı bulunamadı veya RLS tarafından engellendi.', { code: 'PROFILE_UPDATE_EMPTY' });
+      return saveProfileToLocalState(mapProfile(data));
     } catch (error) {
-      warnSupabaseProfile('update', error);
+      console.warn('Supabase profile update failed.', error?.message || error);
+      throw error?.isProfileWriteError ? error : profileWriteError(profileWriteMessage(error), error);
     }
   }
   const fallback = localProfileFallback(authUser || fallbackUser || session?.user);
