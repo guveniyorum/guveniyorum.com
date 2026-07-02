@@ -1,0 +1,3 @@
+-- Historical Supabase migration already applied in the linked production database.
+-- This placeholder keeps repository migration history aligned with supabase_migrations.schema_migrations.
+-- Do not edit unless recreating the original migration from backup.
