@@ -2,12 +2,28 @@ import { ENV } from './env.js';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const STORAGE_KEY = 'guveniyorum-platform-state-v1';
+const AUTH_STORAGE_KEY = 'guveniyorum-auth-session-v1';
 const hasSupabase = Boolean(ENV?.supabaseUrl && ENV?.supabaseAnonKey);
 const supabase = hasSupabase ? createClient(ENV.supabaseUrl, ENV.supabaseAnonKey) : null;
 
+export const profileAvatarPool = [
+  { key: 'neon-orbit', label: 'Neon Orbit', emoji: '◎' },
+  { key: 'green-pulse', label: 'Green Pulse', emoji: '◉' },
+  { key: 'purple-shield', label: 'Purple Shield', emoji: '◆' },
+  { key: 'diamond-cat', label: 'Diamond Cat', emoji: '◇' },
+  { key: 'cyber-fox', label: 'Cyber Fox', emoji: '✦' },
+  { key: 'trust-owl', label: 'Trust Owl', emoji: '◌' },
+  { key: 'luna-mask', label: 'Luna Mask', emoji: '◐' },
+  { key: 'radar-bot', label: 'Radar Bot', emoji: '⌾' },
+  { key: 'mint-dragon', label: 'Mint Dragon', emoji: '△' },
+  { key: 'glass-panther', label: 'Glass Panther', emoji: '◈' },
+  { key: 'safe-rabbit', label: 'Safe Rabbit', emoji: '○' },
+  { key: 'nova-wolf', label: 'Nova Wolf', emoji: '✧' }
+];
+
 const initialState = {
   session: { isAuthenticated: false, activeUserId: 'user-demo-admin' },
-  profiles: [{ id: 'user-demo-admin', email: 'admin@guveniyorum.com', displayName: 'Mustafa', role: 'admin', level: 7, xp: 1840, points: 425, trustScore: 92 }],
+  profiles: [{ id: 'user-demo-admin', userId: 'user-demo-admin', email: 'admin@guveniyorum.com', displayName: 'Mustafa', nickname: 'Mustafa', avatarKey: 'neon-orbit', bio: '', role: 'admin', level: 7, xp: 1840, points: 425, trustScore: 92, contributionScore: 425, reviewCount: 0, complaintCount: 0, solvedContributionCount: 0, helpfulVotes: 0, onboardingCompleted: true }],
   brands: [
     { id: 'brand-safe', name: 'SafeMark', slug: 'safemark', domain: 'safemark.example', status: 'trusted', trustScore: 98, complaintCount: 12, solvedCount: 10, responseTimeHours: 2 },
     { id: 'brand-guven', name: 'GüvenMark', slug: 'guvenmark', domain: 'guvenmark.example', status: 'under_review', trustScore: 88, complaintCount: 18, solvedCount: 13, responseTimeHours: 5 },
@@ -24,10 +40,75 @@ function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function loadState() { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? { ...clone(initialState), ...JSON.parse(raw) } : clone(initialState); } catch { return clone(initialState); } }
 function saveState(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); window.dispatchEvent(new CustomEvent('gi:state', { detail: state })); }
 function publicId(state) { return `GVN-${new Date().getFullYear()}-${String(state.complaints.length + 1).padStart(4, '0')}`; }
-function mapProfile(row) { return { id: row.id, email: row.email, displayName: row.display_name, role: row.role, level: row.level, xp: row.xp, points: row.points, trustScore: row.trust_score }; }
+function numberValue(value, fallback = 0) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : fallback; }
+function emailPrefix(email = '') { return String(email).split('@')[0]?.trim() || 'Yeni Kullanıcı'; }
+function readAuthFallbackUser() { try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null'); } catch { return null; } }
+function safeAvatarKey(value) { return profileAvatarPool.some((avatar) => avatar.key === value) ? value : 'neon-orbit'; }
+function displayNameForUser(user = {}, email = '') { return user?.user_metadata?.full_name || user?.user_metadata?.name || user?.displayName || emailPrefix(email); }
+function normalizeProfile(row = {}, fallbackUser = {}) {
+  const email = row.email ?? fallbackUser.email ?? '';
+  const nickname = String(row.nickname ?? fallbackUser.nickname ?? '').trim();
+  const displayName = row.displayName ?? row.display_name ?? displayNameForUser(fallbackUser, email);
+  return {
+    id: row.id ?? fallbackUser.profileId ?? fallbackUser.id ?? `user-${Date.now()}`,
+    userId: row.userId ?? row.user_id ?? fallbackUser.id ?? null,
+    email,
+    displayName,
+    nickname: nickname || null,
+    avatarKey: safeAvatarKey(row.avatarKey ?? row.avatar_key ?? fallbackUser.avatarKey),
+    bio: String(row.bio ?? fallbackUser.bio ?? ''),
+    role: row.role ?? fallbackUser.role ?? 'user',
+    level: numberValue(row.level ?? fallbackUser.level, 1),
+    xp: numberValue(row.xp ?? fallbackUser.xp, 0),
+    points: numberValue(row.points ?? fallbackUser.points, 0),
+    wallet: numberValue(row.wallet ?? fallbackUser.wallet, 0),
+    trustScore: numberValue(row.trustScore ?? row.trust_score ?? fallbackUser.trustScore, 70),
+    contributionScore: numberValue(row.contributionScore ?? row.contribution_score ?? fallbackUser.contributionScore ?? fallbackUser.points, 0),
+    reviewCount: numberValue(row.reviewCount ?? row.review_count ?? fallbackUser.reviewCount, 0),
+    complaintCount: numberValue(row.complaintCount ?? row.complaint_count ?? fallbackUser.complaintCount, 0),
+    solvedContributionCount: numberValue(row.solvedContributionCount ?? row.solved_contribution_count ?? fallbackUser.solvedContributionCount, 0),
+    helpfulVotes: numberValue(row.helpfulVotes ?? row.helpful_votes ?? fallbackUser.helpfulVotes, 0),
+    lastSeenAt: row.lastSeenAt ?? row.last_seen_at ?? null,
+    onboardingCompleted: Boolean(row.onboardingCompleted ?? row.onboarding_completed ?? false),
+    localOnly: Boolean(row.localOnly ?? fallbackUser.localOnly)
+  };
+}
+function mapProfile(row) { return normalizeProfile(row); }
 function mapBrand(row) { return { id: row.id, name: row.name, slug: row.slug, domain: row.domain, status: row.status, trustScore: row.trust_score, complaintCount: row.complaint_count, solvedCount: row.solved_count, responseTimeHours: row.response_time_hours }; }
 function mapComplaint(row) { return { id: row.id, publicId: row.public_id, userId: row.user_id, brandId: row.brand_id, brandName: row.brand_name, title: row.title, category: row.category, description: row.description, status: row.status, evidenceLevel: row.evidence_level, rewardStatus: row.reward_status, createdAt: row.created_at }; }
 function warnSupabaseRead(label, error) { console.warn(`Supabase ${label} read failed; using local fallback.`, error?.message || error); }
+function warnSupabaseProfile(label, error) { console.warn(`Supabase profile ${label} failed; using local fallback.`, error?.message || error); }
+function localProfileFallback(user = readAuthFallbackUser()) {
+  const state = loadState();
+  const fallbackUser = user || {};
+  const hasIdentity = Boolean(fallbackUser.id || fallbackUser.email);
+  const existing = state.profiles.find((profile) => (fallbackUser.id && (profile.userId === fallbackUser.id || profile.id === fallbackUser.id)) || (fallbackUser.email && profile.email === fallbackUser.email)) || (!hasIdentity ? state.profiles.find((profile) => profile.id === state.session.activeUserId) : null) || {};
+  return normalizeProfile({
+    ...existing,
+    id: existing.id || fallbackUser.profileId || fallbackUser.id,
+    user_id: existing.userId || fallbackUser.id,
+    email: existing.email || fallbackUser.email || '',
+    display_name: existing.displayName || displayNameForUser(fallbackUser, fallbackUser.email),
+    localOnly: true
+  }, fallbackUser);
+}
+function saveProfileToLocalState(profile) {
+  const normalized = normalizeProfile(profile, profile);
+  const state = loadState();
+  state.session.isAuthenticated = true;
+  state.session.activeUserId = normalized.id;
+  state.profiles = [normalized, ...state.profiles.filter((item) => item.id !== normalized.id && item.email !== normalized.email)];
+  saveState(state);
+  return normalized;
+}
+function profilePatch(fields = {}) {
+  const patch = { last_seen_at: new Date().toISOString() };
+  if ('nickname' in fields) patch.nickname = String(fields.nickname || '').trim() || null;
+  if ('avatarKey' in fields || 'avatar_key' in fields) patch.avatar_key = safeAvatarKey(fields.avatarKey ?? fields.avatar_key);
+  if ('bio' in fields) patch.bio = String(fields.bio || '');
+  if ('onboardingCompleted' in fields || 'onboarding_completed' in fields) patch.onboarding_completed = Boolean(fields.onboardingCompleted ?? fields.onboarding_completed);
+  return patch;
+}
 async function readSupabaseRows(label, query) {
   if (!supabase) return [];
   try {
@@ -38,6 +119,105 @@ async function readSupabaseRows(label, query) {
     warnSupabaseRead(label, error);
     return [];
   }
+}
+
+export async function getCurrentSession() {
+  if (!supabase) {
+    const user = readAuthFallbackUser();
+    return user ? { user, localOnly: true } : null;
+  }
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) { warnSupabaseProfile('session read', error); return null; }
+    return data?.session || null;
+  } catch (error) {
+    warnSupabaseProfile('session read', error);
+    return null;
+  }
+}
+
+export async function getCurrentUser(fallbackUser = null) {
+  const session = await getCurrentSession();
+  return session?.user || fallbackUser || readAuthFallbackUser();
+}
+
+export async function fetchOwnProfile(fallbackUser = null) {
+  const session = await getCurrentSession();
+  const authUser = session?.localOnly ? null : session?.user;
+  if (!supabase || !authUser?.id) {
+    const fallback = fallbackUser || session?.user || readAuthFallbackUser();
+    const profile = localProfileFallback(fallback);
+    return fallback ? saveProfileToLocalState(profile) : profile;
+  }
+  try {
+    const { data, error } = await supabase.from('profiles').select('*').eq('user_id', authUser.id).maybeSingle();
+    if (error) { warnSupabaseProfile('fetch', error); return saveProfileToLocalState(localProfileFallback(authUser)); }
+    return data ? saveProfileToLocalState(mapProfile(data)) : null;
+  } catch (error) {
+    warnSupabaseProfile('fetch', error);
+    return saveProfileToLocalState(localProfileFallback(authUser));
+  }
+}
+
+export async function ensureOwnProfile(fallbackUser = null) {
+  const session = await getCurrentSession();
+  const authUser = session?.localOnly ? null : session?.user;
+  const user = authUser || fallbackUser || session?.user || readAuthFallbackUser();
+  if (!supabase || !authUser?.id) {
+    const profile = localProfileFallback(user);
+    return user ? saveProfileToLocalState(profile) : profile;
+  }
+  const existing = await fetchOwnProfile(authUser);
+  if (existing && !existing.localOnly) return existing;
+  const email = authUser.email || fallbackUser?.email || '';
+  const payload = {
+    user_id: authUser.id,
+    email,
+    display_name: displayNameForUser(authUser, email),
+    nickname: null,
+    avatar_key: 'neon-orbit',
+    onboarding_completed: false,
+    last_seen_at: new Date().toISOString()
+  };
+  try {
+    const { data, error } = await supabase.from('profiles').insert(payload).select('*').single();
+    if (error) {
+      const retry = await supabase.from('profiles').select('*').eq('user_id', authUser.id).maybeSingle();
+      if (!retry.error && retry.data) return saveProfileToLocalState(mapProfile(retry.data));
+      warnSupabaseProfile('create', error);
+      return saveProfileToLocalState(localProfileFallback(authUser));
+    }
+    return saveProfileToLocalState(mapProfile(data));
+  } catch (error) {
+    warnSupabaseProfile('create', error);
+    return saveProfileToLocalState(localProfileFallback(authUser));
+  }
+}
+
+export async function updateOwnProfileProfileFields(fields = {}, fallbackUser = null) {
+  const session = await getCurrentSession();
+  const authUser = session?.localOnly ? null : session?.user;
+  const patch = profilePatch(fields);
+  if (supabase && authUser?.id) {
+    try {
+      await ensureOwnProfile(authUser);
+      const { data, error } = await supabase.from('profiles').update(patch).eq('user_id', authUser.id).select('*').maybeSingle();
+      if (!error && data) return saveProfileToLocalState(mapProfile(data));
+      warnSupabaseProfile('update', error);
+    } catch (error) {
+      warnSupabaseProfile('update', error);
+    }
+  }
+  const fallback = localProfileFallback(authUser || fallbackUser || session?.user);
+  return saveProfileToLocalState({
+    ...fallback,
+    nickname: patch.nickname ?? fallback.nickname,
+    avatarKey: patch.avatar_key ?? fallback.avatarKey,
+    bio: patch.bio ?? fallback.bio,
+    onboardingCompleted: patch.onboarding_completed ?? fallback.onboardingCompleted,
+    lastSeenAt: patch.last_seen_at,
+    localOnly: true
+  });
 }
 
 export async function fetchBrandsFromSupabase() {
@@ -77,6 +257,12 @@ async function hydrateFromSupabase() {
 export const platformStore = {
   supabase,
   hasSupabase,
+  profileAvatarPool,
+  getCurrentSession,
+  getCurrentUser,
+  fetchOwnProfile,
+  ensureOwnProfile,
+  updateOwnProfileProfileFields,
   fetchBrandsFromSupabase,
   fetchBrandLinksFromSupabase,
   fetchBrandScoresFromSupabase,
@@ -84,28 +270,13 @@ export const platformStore = {
   async sync() { return hydrateFromSupabase(); },
   getState() { return loadState(); },
   reset() { const state = clone(initialState); saveState(state); return state; },
-  currentUser() { const state = loadState(); return state.profiles.find(profile => profile.id === state.session.activeUserId) || state.profiles[0]; },
+  currentUser() { const state = loadState(); return normalizeProfile(state.profiles.find(profile => profile.id === state.session.activeUserId) || state.profiles[0]); },
 
   async signIn(email = 'admin@guveniyorum.com') {
     const state = loadState();
-    if (supabase) {
-      const existing = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
-      let row = existing.data;
-      if (!row) {
-        const created = await supabase.from('profiles').insert({ email, display_name: email.split('@')[0], role: email.includes('admin') ? 'admin' : 'user' }).select().single();
-        row = created.data;
-      }
-      if (row) {
-        const profile = mapProfile(row);
-        state.session.isAuthenticated = true;
-        state.session.activeUserId = profile.id;
-        state.profiles = [profile, ...state.profiles.filter(item => item.id !== profile.id)];
-        saveState(state);
-        return profile;
-      }
-    }
+    if (supabase) return ensureOwnProfile({ email });
     let profile = state.profiles.find(item => item.email === email);
-    if (!profile) { profile = { id: `user-${Date.now()}`, email, displayName: email.split('@')[0], role: 'user', level: 1, xp: 0, points: 0, trustScore: 70 }; state.profiles.push(profile); }
+    if (!profile) { profile = normalizeProfile({ id: `user-${Date.now()}`, email, display_name: emailPrefix(email), role: email.includes('admin') ? 'admin' : 'user', level: 1, xp: 0, points: 0, trust_score: 70, avatar_key: 'neon-orbit' }); state.profiles.push(profile); }
     state.session.isAuthenticated = true;
     state.session.activeUserId = profile.id;
     saveState(state);
