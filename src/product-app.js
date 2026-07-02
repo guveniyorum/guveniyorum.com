@@ -1,6 +1,11 @@
 const STORAGE_KEY = 'guveniyorum-diamond-state-v2';
 const LEGACY_STORAGE_KEY = 'guveniyorum-diamond-state-v1';
 const AUTH_STORAGE_KEY = 'guveniyorum-auth-session-v1';
+const PROFILE_AVATAR_GLYPHS = {
+  'neon-orbit': '◎', 'green-pulse': '◉', 'purple-shield': '◆', 'diamond-cat': '◇',
+  'cyber-fox': '✦', 'trust-owl': '◌', 'luna-mask': '◐', 'radar-bot': '⌾',
+  'mint-dragon': '△', 'glass-panther': '◈', 'safe-rabbit': '○', 'nova-wolf': '✧',
+};
 
 const complaintBaseStats = {
   resolved: 1246,
@@ -207,7 +212,10 @@ function saveStore() {
 
 function money(value) { return new Intl.NumberFormat('tr-TR').format(value); }
 function root() { return document.getElementById('root'); }
-function avatarInitial(user) { return escapeHtml((user?.displayName || user?.email || 'Ü').trim().slice(0, 1).toLocaleUpperCase('tr-TR') || 'Ü'); }
+function avatarInitial(user) {
+  const profile = user?.profile || user || {};
+  return escapeHtml(PROFILE_AVATAR_GLYPHS[profile.avatarKey] || (profile.nickname || profile.displayName || profile.email || 'Ü').trim().slice(0, 1).toLocaleUpperCase('tr-TR') || 'Ü');
+}
 function normalizeMap(value) { return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function normalizeComplaints(value) {
   const source = Array.isArray(value) ? value : initialComplaints;
@@ -399,9 +407,10 @@ function guestTopbar() {
 }
 
 function authenticatedTopbar(user) {
-  const display = escapeHtml(user.displayName || user.email || 'Üye');
-  const wallet = money(Number(user.wallet || 0));
-  const xp = money(Number(user.xp || 0));
+  const profile = user.profile || user;
+  const display = escapeHtml(profile.nickname || user.nickname || user.displayName || user.email || 'Üye');
+  const wallet = money(Number(user.wallet || profile.wallet || 0));
+  const xp = money(Number(user.xp || profile.xp || 0));
 
   return `<button type="button" class="authSession" data-action="profile"><span class="authAvatar">${avatarInitial(user)}</span>${display}</button><span class="btn authWallet hideMobile">₺${wallet} · ${xp} XP</span><button type="button" class="authSignout" data-auth-signout>Çıkış</button>`;
 }
