@@ -140,7 +140,7 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
       await completeSession(session, { provider: authProvider(session.user), source: 'boot' });
       return true;
     }
-    showGuestTopbar();
+    clearAuthSession();
     return false;
   }
 
