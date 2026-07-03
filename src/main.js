@@ -3,7 +3,6 @@ import './product-app.js';
 import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) => {
   const KEY = 'guveniyorum-auth-session-v1';
   const NICKNAME_RE = /^[A-Za-z0-9ğüşöçıİĞÜŞÖÇ_-]{3,24}$/u;
-  const AUTH_DEBUG = Boolean(import.meta.env?.DEV || ['localhost', '127.0.0.1'].includes(location.hostname));
   const avatars = profileAvatarPool.length ? profileAvatarPool : [{ key: 'neon-orbit', label: 'Neon Orbit', emoji: '◎' }];
   let mode = 'signin';
   let user = readUser();
@@ -11,9 +10,12 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
   let busy = false;
   let bootstrapError = '';
   let selectedAvatar = user?.avatarKey || user?.profile?.avatarKey || 'neon-orbit';
+  const SESSION_PENDING_MESSAGE = 'Giriş isteği alındı. E-posta doğrulaması gerekiyorsa bağlantıyı kontrol et.';
 
   function readUser() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } }
   function saveUser(next) { user = next || null; user ? localStorage.setItem(KEY, JSON.stringify(user)) : localStorage.removeItem(KEY); window.dispatchEvent(new CustomEvent('gi:auth', { detail: user })); paintTopbar(); }
+  function showGuestTopbar() { user = null; window.dispatchEvent(new CustomEvent('gi:auth', { detail: null })); paintTopbar(); }
+  function clearAuthSession() { user = null; localStorage.removeItem(KEY); window.dispatchEvent(new CustomEvent('gi:auth', { detail: null })); paintTopbar(); }
   function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
   function emailPrefix(email = '') { return String(email).split('@')[0]?.trim() || 'Üye'; }
   function fmt(value) { return Number(value || 0).toLocaleString('tr-TR'); }
@@ -22,18 +24,22 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
   function profileName(profile = profileOf()) { return profile.nickname || profile.displayName || user?.displayName || emailPrefix(profile.email || user?.email); }
   function userKey() { return user ? `user:${user.id || user.email || user.displayName || 'active'}:${user.nickname || user.avatarKey || ''}` : 'guest'; }
   function needsBootstrap(profile = profileOf()) { return Boolean(user && (!profile.nickname || profile.onboardingCompleted === false)); }
+  function hasValidSupabaseSession(session) { return Boolean(session && !session.localOnly && session.user?.id); }
+  function shouldOpenProfileBootstrap(session, profile = profileOf()) { return hasValidSupabaseSession(session) && needsBootstrap(profile); }
+  function authProvider(authUser = null, fallback = 'Supabase') { return authUser?.app_metadata?.provider || authUser?.app_metadata?.providers?.[0] || fallback; }
   function debugAuthStep(label, payload = {}) {
-    if (!AUTH_DEBUG) return;
+    const isDevBrowser = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
+    if (!isDevBrowser) return;
     const session = payload.session || null;
-    const authUser = payload.authUser || session?.user || null;
-    const profile = payload.profile || payload.nextUser?.profile || null;
-    console.debug('[gi:auth]', label, {
-      hasSession: Boolean(session),
-      hasUser: Boolean(authUser || payload.nextUser),
-      userIdPresent: Boolean(authUser?.id || payload.nextUser?.id),
-      emailPresent: Boolean(authUser?.email || payload.nextUser?.email || profile?.email),
-      profilePresent: Boolean(profile),
-      onboardingCompleted: Boolean(profile?.onboardingCompleted ?? payload.nextUser?.onboardingCompleted)
+    const profile = payload.profile || null;
+    const authUser = payload.user || session?.user || null;
+    console.debug('[gi-auth]', label, {
+      hasSession: Boolean(payload.hasSession ?? session),
+      hasUser: Boolean(payload.hasUser ?? authUser),
+      hasUserId: Boolean(payload.hasUserId ?? authUser?.id),
+      hasEmail: Boolean(payload.hasEmail ?? authUser?.email ?? profile?.email),
+      hasProfile: Boolean(payload.hasProfile ?? profile),
+      onboardingCompleted: Boolean(payload.onboardingCompleted ?? profile?.onboardingCompleted ?? profile?.onboarding_completed)
     });
   }
 
@@ -79,20 +85,6 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
     };
     return { ...base, profile: { ...profile, ...base } };
   }
-  function providerFor(authUser = {}) { return authUser?.app_metadata?.provider || authUser?.identities?.[0]?.provider || 'Supabase'; }
-  function sessionFallbackProfile(authUser = {}) {
-    const email = authUser.email || '';
-    return {
-      id: authUser.id,
-      userId: authUser.id,
-      email,
-      displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || emailPrefix(email),
-      nickname: null,
-      avatarKey: 'neon-orbit',
-      onboardingCompleted: false,
-      localOnly: true
-    };
-  }
 
   function openTopPanel(type) {
     styles();
@@ -121,29 +113,35 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
     document.body.insertAdjacentHTML('beforeend', `<div class="authOverlay" data-profile-bootstrap><section class="profileCard"><h2>Profilini oluştur</h2><p>Güven ekosisteminde takma adın ve avatarınla görün. Gerçek adını paylaşmak zorunda değilsin.</p>${bootstrapError ? `<div class="authError">${esc(bootstrapError)}</div>` : ''}<form data-profile-form><label class="profileLabel" for="nickname">Takma ad</label><input id="nickname" class="authInput" name="nickname" value="${esc(profile.nickname || '')}" minlength="3" maxlength="24" autocomplete="nickname" required><label class="profileLabel">Avatar</label><div class="profileAvatarGrid">${avatarOptions}</div><button class="authSubmit" type="submit" ${busy ? 'disabled' : ''}>${busy ? 'Kaydediliyor...' : 'Kaydet ve Devam Et'}</button></form></section></div>`);
   }
 
-  async function handleSession(session, label = 'session') {
-    debugAuthStep(`${label}:start`, { session });
-    if (!session?.user) { saveUser(null); debugAuthStep(`${label}:guest`); return null; }
-    const authUser = session.user;
-    let profile = null;
-    try { profile = await platformStore.ensureOwnProfile(authUser, session); } catch (e) { console.warn('Profile bootstrap failed:', e?.message || e); }
-    profile ||= sessionFallbackProfile(authUser);
-    const nextUser = identityFromProfile(profile, authUser, authUser.email, providerFor(authUser));
+  async function completeLocal(email, provider = 'Demo e-posta') {
+    const profile = await platformStore.signIn(email);
+    const nextUser = identityFromProfile(profile, null, email, provider);
     saveUser(nextUser);
     close();
-    debugAuthStep(`${label}:ready`, { session, profile, nextUser });
-    if (needsBootstrap(nextUser.profile)) openProfileBootstrap(nextUser.profile);
+  }
+
+  async function completeSession(session, { provider = 'Supabase', source = 'session', openBootstrap = true } = {}) {
+    const authUser = session?.user || null;
+    debugAuthStep(`${source}:session`, { session, user: authUser });
+    if (!authUser?.id && !authUser?.email) return null;
+    let profile = null;
+    try { profile = await platformStore.ensureOwnProfile(authUser); } catch (e) { console.warn('Profile bootstrap failed:', e); }
+    const nextUser = identityFromProfile(profile || {}, authUser, authUser.email || user?.email || '', provider);
+    saveUser(nextUser);
+    debugAuthStep(`${source}:profile`, { session, user: authUser, profile: nextUser.profile });
+    if (openBootstrap && shouldOpenProfileBootstrap(session, nextUser.profile)) openProfileBootstrap(nextUser.profile);
     return nextUser;
   }
 
-  async function complete(email, authUser = null, provider = 'E-posta') {
-    let profile = null;
-    try { profile = await platformStore.ensureOwnProfile(authUser || user || { email }); } catch (e) { console.warn('Profile bootstrap failed:', e); }
-    profile ||= await platformStore.signIn(email);
-    const nextUser = identityFromProfile(profile, authUser, email, provider);
-    saveUser(nextUser);
-    close();
-    if (needsBootstrap(nextUser.profile)) openProfileBootstrap(nextUser.profile);
+  async function bootAuthRuntime() {
+    const session = await platformStore.getCurrentSession();
+    debugAuthStep('boot:getCurrentSession', { session });
+    if (session?.user) {
+      await completeSession(session, { provider: authProvider(session.user), source: 'boot' });
+      return true;
+    }
+    showGuestTopbar();
+    return false;
   }
 
   async function submit(e) {
@@ -156,18 +154,20 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
       if (sb) {
         const res = mode === 'signup' ? await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } }) : await sb.auth.signInWithPassword({ email, password });
         if (res.error) throw res.error;
-        const session = res.data?.session || await platformStore.getCurrentSession();
-        debugAuthStep('login-submit', { session, authUser: res.data?.user });
+        const session = await platformStore.getCurrentSession();
+        debugAuthStep('login-submit:getCurrentSession', { session, user: res.data?.user });
         if (!session?.user) {
-          error = 'Giriş isteği alındı. E-posta doğrulaması gerekiyorsa bağlantıyı kontrol et.';
+          busy = false;
+          error = SESSION_PENDING_MESSAGE;
           open(mode);
           return;
         }
-        await handleSession(session, 'login-submit');
+        await completeSession(session, { provider: 'E-posta', source: 'login-submit' });
+        close();
       } else {
-        await complete(email, null, 'Demo e-posta');
+        await completeLocal(email);
       }
-    } catch (err) { error = err?.message || 'Giriş işlemi tamamlanamadı.'; open(mode); }
+    } catch (err) { busy = false; error = err?.message || 'Giriş işlemi tamamlanamadı.'; open(mode); }
     finally { busy = false; }
   }
 
@@ -177,8 +177,11 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
     if (!NICKNAME_RE.test(nickname || '')) { bootstrapError = 'Takma ad 3-24 karakter olmalı; Türkçe harf, sayı, alt çizgi veya tire kullanabilirsin.'; openProfileBootstrap(profileOf()); return; }
     busy = true; bootstrapError = ''; openProfileBootstrap({ ...profileOf(), nickname });
     try {
+      const session = await platformStore.getCurrentSession();
+      if (!hasValidSupabaseSession(session)) throw new Error('Profil kaydı için aktif oturum doğrulanmalı.');
       const profile = await platformStore.updateOwnProfileProfileFields({ nickname, avatarKey: selectedAvatar, onboardingCompleted: true }, user);
       saveUser(identityFromProfile(profile, user, user?.email, user?.provider || 'E-posta'));
+      debugAuthStep('profile-save:success', { session, user: session.user, profile });
       busy = false; closeBootstrap();
       toast(profile.localOnly ? 'Profil yerel olarak kaydedildi. Bağlantı gelince yeniden eşitlenecek.' : 'Profilin hazır.');
     } catch (err) {
@@ -199,16 +202,8 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
     try { await platformStore.supabase?.auth.signOut(); } catch {}
     closeTopPanel(); closeBootstrap();
     busy = false; error = ''; mode = 'signin';
-    saveUser(null);
+    clearAuthSession();
     setTimeout(() => location.replace('/'), 50);
-  }
-
-  async function bootAuth() {
-    const session = await platformStore.getCurrentSession();
-    if (session?.user) { await handleSession(session, 'boot'); return; }
-    debugAuthStep('boot:guest', { session });
-    if (platformStore.supabase) saveUser(null);
-    else paintTopbar();
   }
 
   function paintTopbar() {
@@ -254,14 +249,18 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
   });
   new MutationObserver(() => requestAnimationFrame(paintTopbar)).observe(document.getElementById('root'), { childList: true, subtree: true });
   paintTopbar();
-  if (!platformStore.supabase && user && needsBootstrap(profileOf())) requestAnimationFrame(() => openProfileBootstrap(profileOf()));
-  if (['/uye-ol', '/giris', '/giris-yap'].includes(location.pathname.replace(/\/$/, ''))) open(location.pathname.includes('uye') ? 'signup' : 'signin');
-  bootAuth().catch((err) => { console.warn('Auth boot failed:', err?.message || err); saveUser(null); });
+  const authRouteMode = location.pathname.replace(/\/$/, '').includes('uye') ? 'signup' : 'signin';
+  const isAuthRoute = ['/uye-ol', '/giris', '/giris-yap'].includes(location.pathname.replace(/\/$/, ''));
+  bootAuthRuntime().then((hasSession) => { if (!hasSession && isAuthRoute) open(authRouteMode); }).catch((err) => { console.warn('Auth boot failed:', err?.message || err); showGuestTopbar(); if (isAuthRoute) open(authRouteMode); });
   platformStore.supabase?.auth.onAuthStateChange((event, session) => {
     debugAuthStep(`auth-state:${event}`, { session });
-    if (event === 'SIGNED_OUT') { closeBootstrap(); closeTopPanel(); saveUser(null); return; }
-    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-      setTimeout(() => handleSession(session, `auth-state:${event}`).catch((err) => console.warn('Auth state handling failed:', err?.message || err)), 0);
+    if (event === 'SIGNED_OUT') {
+      closeTopPanel(); closeBootstrap();
+      clearAuthSession();
+      return;
+    }
+    if (event === 'SIGNED_IN' && session?.user) {
+      completeSession(session, { provider: authProvider(session.user), source: 'auth-state' }).catch((err) => console.warn('Auth state sync failed:', err?.message || err));
     }
   });
 });
