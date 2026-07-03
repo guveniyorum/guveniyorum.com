@@ -14,7 +14,7 @@ import('./platform-store.js').then(({ platformStore, profileAvatarPool = [] }) =
 
   function readUser() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } }
   function saveUser(next) { user = next || null; user ? localStorage.setItem(KEY, JSON.stringify(user)) : localStorage.removeItem(KEY); window.dispatchEvent(new CustomEvent('gi:auth', { detail: user })); paintTopbar(); }
-  function showGuestTopbar() { user = null; window.dispatchEvent(new CustomEvent('gi:auth', { detail: null })); paintTopbar(); }
+  function showGuestTopbar() { clearAuthSession(); }
   function clearAuthSession() { user = null; localStorage.removeItem(KEY); window.dispatchEvent(new CustomEvent('gi:auth', { detail: null })); paintTopbar(); }
   function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
   function emailPrefix(email = '') { return String(email).split('@')[0]?.trim() || 'Üye'; }
