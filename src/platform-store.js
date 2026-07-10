@@ -7,18 +7,18 @@ const hasSupabase = Boolean(ENV?.supabaseUrl && ENV?.supabaseAnonKey);
 const supabase = hasSupabase ? createClient(ENV.supabaseUrl, ENV.supabaseAnonKey) : null;
 
 export const profileAvatarPool = [
-  { key: 'neon-orbit', label: 'Neon Orbit', emoji: '◎' },
-  { key: 'green-pulse', label: 'Green Pulse', emoji: '◉' },
-  { key: 'purple-shield', label: 'Purple Shield', emoji: '◆' },
-  { key: 'diamond-cat', label: 'Diamond Cat', emoji: '◇' },
-  { key: 'cyber-fox', label: 'Cyber Fox', emoji: '✦' },
-  { key: 'trust-owl', label: 'Trust Owl', emoji: '◌' },
-  { key: 'luna-mask', label: 'Luna Mask', emoji: '◐' },
-  { key: 'radar-bot', label: 'Radar Bot', emoji: '⌾' },
-  { key: 'mint-dragon', label: 'Mint Dragon', emoji: '△' },
-  { key: 'glass-panther', label: 'Glass Panther', emoji: '◈' },
-  { key: 'safe-rabbit', label: 'Safe Rabbit', emoji: '○' },
-  { key: 'nova-wolf', label: 'Nova Wolf', emoji: '✧' }
+  { key: 'neon-orbit', label: 'Neon Orbit', subtitle: 'Sessiz İzleyici', emoji: '◎', gradient: 'linear-gradient(135deg,#25f084,#15b8a6)', glow: 'rgba(37,240,132,.34)' },
+  { key: 'green-pulse', label: 'Green Pulse', subtitle: 'Canlı Katılımcı', emoji: '◉', gradient: 'linear-gradient(135deg,#8affb5,#22c55e)', glow: 'rgba(138,255,181,.32)' },
+  { key: 'purple-shield', label: 'Purple Shield', subtitle: 'Güven Savunucusu', emoji: '◆', gradient: 'linear-gradient(135deg,#8b3dff,#4f46e5)', glow: 'rgba(139,61,255,.34)' },
+  { key: 'diamond-cat', label: 'Diamond Cat', subtitle: 'Keskin Takipçi', emoji: '◇', gradient: 'linear-gradient(135deg,#eef7ff,#38bdf8)', glow: 'rgba(56,189,248,.32)' },
+  { key: 'cyber-fox', label: 'Cyber Fox', subtitle: 'Hızlı Gözlemci', emoji: '✦', gradient: 'linear-gradient(135deg,#f8b84e,#fb7185)', glow: 'rgba(248,184,78,.32)' },
+  { key: 'trust-owl', label: 'Trust Owl', subtitle: 'Sakin Analist', emoji: '◌', gradient: 'linear-gradient(135deg,#94a3b8,#22d3ee)', glow: 'rgba(34,211,238,.30)' },
+  { key: 'luna-mask', label: 'Luna Mask', subtitle: 'Gizli Denetçi', emoji: '◐', gradient: 'linear-gradient(135deg,#c084fc,#f0abfc)', glow: 'rgba(192,132,252,.30)' },
+  { key: 'radar-bot', label: 'Radar Bot', subtitle: 'Sinyal Avcısı', emoji: '⌾', gradient: 'linear-gradient(135deg,#60a5fa,#34d399)', glow: 'rgba(96,165,250,.32)' },
+  { key: 'mint-dragon', label: 'Mint Dragon', subtitle: 'Cesur Bildirici', emoji: '△', gradient: 'linear-gradient(135deg,#5eead4,#a7f3d0)', glow: 'rgba(94,234,212,.30)' },
+  { key: 'glass-panther', label: 'Glass Panther', subtitle: 'Net Görüş', emoji: '◈', gradient: 'linear-gradient(135deg,#e0f2fe,#818cf8)', glow: 'rgba(129,140,248,.30)' },
+  { key: 'safe-rabbit', label: 'Safe Rabbit', subtitle: 'Dikkatli Gezgin', emoji: '○', gradient: 'linear-gradient(135deg,#fef3c7,#86efac)', glow: 'rgba(254,243,199,.30)' },
+  { key: 'nova-wolf', label: 'Nova Wolf', subtitle: 'Topluluk Koruyucusu', emoji: '✧', gradient: 'linear-gradient(135deg,#38bdf8,#8b5cf6)', glow: 'rgba(56,189,248,.32)' }
 ];
 
 const initialState = {
@@ -45,10 +45,15 @@ function emailPrefix(email = '') { return String(email).split('@')[0]?.trim() ||
 function readAuthFallbackUser() { try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null'); } catch { return null; } }
 function safeAvatarKey(value) { return profileAvatarPool.some((avatar) => avatar.key === value) ? value : 'neon-orbit'; }
 function displayNameForUser(user = {}, email = '') { return user?.user_metadata?.full_name || user?.user_metadata?.name || user?.displayName || emailPrefix(email); }
+function isDemoAdminProfile(profile = {}) { return profile?.id === 'user-demo-admin' || profile?.userId === 'user-demo-admin' || profile?.email === 'admin@guveniyorum.com'; }
+function guestProfile() {
+  return normalizeProfile({ id: 'guest-profile', display_name: 'Misafir', role: 'guest', trust_score: 70, localOnly: true });
+}
 function normalizeProfile(row = {}, fallbackUser = {}) {
   const email = row.email ?? fallbackUser.email ?? '';
   const nickname = String(row.nickname ?? fallbackUser.nickname ?? '').trim();
   const displayName = row.displayName ?? row.display_name ?? displayNameForUser(fallbackUser, email);
+  const badges = Array.isArray(row.badges) ? row.badges : Array.isArray(fallbackUser.badges) ? fallbackUser.badges : [];
   return {
     id: row.id ?? fallbackUser.profileId ?? fallbackUser.id ?? `user-${Date.now()}`,
     userId: row.userId ?? row.user_id ?? fallbackUser.id ?? null,
@@ -68,6 +73,9 @@ function normalizeProfile(row = {}, fallbackUser = {}) {
     complaintCount: numberValue(row.complaintCount ?? row.complaint_count ?? fallbackUser.complaintCount, 0),
     solvedContributionCount: numberValue(row.solvedContributionCount ?? row.solved_contribution_count ?? fallbackUser.solvedContributionCount, 0),
     helpfulVotes: numberValue(row.helpfulVotes ?? row.helpful_votes ?? fallbackUser.helpfulVotes, 0),
+    badges,
+    createdAt: row.createdAt ?? row.created_at ?? fallbackUser.createdAt ?? null,
+    updatedAt: row.updatedAt ?? row.updated_at ?? fallbackUser.updatedAt ?? null,
     lastSeenAt: row.lastSeenAt ?? row.last_seen_at ?? null,
     onboardingCompleted: Boolean(row.onboardingCompleted ?? row.onboarding_completed ?? false),
     localOnly: Boolean(row.localOnly ?? fallbackUser.localOnly)
@@ -95,7 +103,8 @@ function localProfileFallback(user = readAuthFallbackUser()) {
   const state = loadState();
   const fallbackUser = user || {};
   const hasIdentity = Boolean(fallbackUser.id || fallbackUser.email);
-  const existing = state.profiles.find((profile) => (fallbackUser.id && (profile.userId === fallbackUser.id || profile.id === fallbackUser.id)) || (fallbackUser.email && profile.email === fallbackUser.email)) || (!hasIdentity ? state.profiles.find((profile) => profile.id === state.session.activeUserId) : null) || {};
+  if (!hasIdentity) return null;
+  const existing = state.profiles.find((profile) => !isDemoAdminProfile(profile) && ((fallbackUser.id && (profile.userId === fallbackUser.id || profile.id === fallbackUser.id)) || (fallbackUser.email && profile.email === fallbackUser.email))) || {};
   return normalizeProfile({
     ...existing,
     id: existing.id || fallbackUser.profileId || fallbackUser.id,
@@ -106,6 +115,7 @@ function localProfileFallback(user = readAuthFallbackUser()) {
   }, fallbackUser);
 }
 function saveProfileToLocalState(profile) {
+  if (!profile) return null;
   const normalized = normalizeProfile(profile, profile);
   const state = loadState();
   state.session.isAuthenticated = true;
@@ -160,7 +170,7 @@ export async function fetchOwnProfile(fallbackUser = null) {
   if (!supabase || !authUser?.id) {
     const fallback = fallbackUser || session?.user || readAuthFallbackUser();
     const profile = localProfileFallback(fallback);
-    return fallback ? saveProfileToLocalState(profile) : profile;
+    return fallback && profile ? saveProfileToLocalState(profile) : null;
   }
   try {
     const { data, error } = await supabase.from('profiles').select('*').eq('user_id', authUser.id).maybeSingle();
@@ -178,7 +188,7 @@ export async function ensureOwnProfile(fallbackUser = null) {
   const user = authUser || fallbackUser || session?.user || readAuthFallbackUser();
   if (!supabase || !authUser?.id) {
     const profile = localProfileFallback(user);
-    return user ? saveProfileToLocalState(profile) : profile;
+    return user && profile ? saveProfileToLocalState(profile) : null;
   }
   const existing = await fetchOwnProfile(authUser);
   if (existing && !existing.localOnly) return existing;
@@ -287,11 +297,21 @@ export const platformStore = {
   async sync() { return hydrateFromSupabase(); },
   getState() { return loadState(); },
   reset() { const state = clone(initialState); saveState(state); return state; },
-  currentUser() { const state = loadState(); return normalizeProfile(state.profiles.find(profile => profile.id === state.session.activeUserId) || state.profiles[0]); },
+  currentUser() {
+    const authUser = readAuthFallbackUser();
+    if (!authUser) return guestProfile();
+    const state = loadState();
+    const profile = state.profiles.find(item => (authUser.profileId && item.id === authUser.profileId) || (authUser.id && (item.userId === authUser.id || item.id === authUser.id)) || (authUser.email && item.email === authUser.email));
+    return normalizeProfile(profile || authUser.profile || authUser, authUser);
+  },
 
   async signIn(email = 'admin@guveniyorum.com') {
     const state = loadState();
-    if (supabase) return ensureOwnProfile({ email });
+    if (supabase) {
+      const session = await getCurrentSession();
+      if (session?.user?.id) return ensureOwnProfile(session.user);
+      throw profileWriteError('Oturum doğrulanmadan profil yerel kullanıcı gibi açılamaz.', { code: 'AUTH_SESSION_MISSING' });
+    }
     let profile = state.profiles.find(item => item.email === email);
     if (!profile) { profile = normalizeProfile({ id: `user-${Date.now()}`, email, display_name: emailPrefix(email), role: email.includes('admin') ? 'admin' : 'user', level: 1, xp: 0, points: 0, trust_score: 70, avatar_key: 'neon-orbit' }); state.profiles.push(profile); }
     state.session.isAuthenticated = true;
