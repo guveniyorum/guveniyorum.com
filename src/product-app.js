@@ -6,6 +6,22 @@ const PROFILE_AVATAR_GLYPHS = {
   'cyber-fox': '✦', 'trust-owl': '◌', 'luna-mask': '◐', 'radar-bot': '⌾',
   'mint-dragon': '△', 'glass-panther': '◈', 'safe-rabbit': '○', 'nova-wolf': '✧',
 };
+const PROFILE_NICKNAME_RE = /^[A-Za-z0-9ğüşöçıİĞÜŞÖÇ_-]{3,24}$/u;
+const PROFILE_AVATAR_META = {
+  'neon-orbit': { label: 'Neon Orbit', subtitle: 'Sessiz İzleyici', gradient: 'linear-gradient(135deg,#25f084,#15b8a6)', glow: 'rgba(37,240,132,.34)' },
+  'green-pulse': { label: 'Green Pulse', subtitle: 'Canlı Katılımcı', gradient: 'linear-gradient(135deg,#8affb5,#22c55e)', glow: 'rgba(138,255,181,.32)' },
+  'purple-shield': { label: 'Purple Shield', subtitle: 'Güven Savunucusu', gradient: 'linear-gradient(135deg,#8b3dff,#4f46e5)', glow: 'rgba(139,61,255,.34)' },
+  'diamond-cat': { label: 'Diamond Cat', subtitle: 'Keskin Takipçi', gradient: 'linear-gradient(135deg,#eef7ff,#38bdf8)', glow: 'rgba(56,189,248,.32)' },
+  'cyber-fox': { label: 'Cyber Fox', subtitle: 'Hızlı Gözlemci', gradient: 'linear-gradient(135deg,#f8b84e,#fb7185)', glow: 'rgba(248,184,78,.32)' },
+  'trust-owl': { label: 'Trust Owl', subtitle: 'Sakin Analist', gradient: 'linear-gradient(135deg,#94a3b8,#22d3ee)', glow: 'rgba(34,211,238,.30)' },
+  'luna-mask': { label: 'Luna Mask', subtitle: 'Gizli Denetçi', gradient: 'linear-gradient(135deg,#c084fc,#f0abfc)', glow: 'rgba(192,132,252,.30)' },
+  'radar-bot': { label: 'Radar Bot', subtitle: 'Sinyal Avcısı', gradient: 'linear-gradient(135deg,#60a5fa,#34d399)', glow: 'rgba(96,165,250,.32)' },
+  'mint-dragon': { label: 'Mint Dragon', subtitle: 'Cesur Bildirici', gradient: 'linear-gradient(135deg,#5eead4,#a7f3d0)', glow: 'rgba(94,234,212,.30)' },
+  'glass-panther': { label: 'Glass Panther', subtitle: 'Net Görüş', gradient: 'linear-gradient(135deg,#e0f2fe,#818cf8)', glow: 'rgba(129,140,248,.30)' },
+  'safe-rabbit': { label: 'Safe Rabbit', subtitle: 'Dikkatli Gezgin', gradient: 'linear-gradient(135deg,#fef3c7,#86efac)', glow: 'rgba(254,243,199,.30)' },
+  'nova-wolf': { label: 'Nova Wolf', subtitle: 'Topluluk Koruyucusu', gradient: 'linear-gradient(135deg,#38bdf8,#8b5cf6)', glow: 'rgba(56,189,248,.32)' },
+};
+const PROFILE_AVATAR_OPTIONS = Object.keys(PROFILE_AVATAR_GLYPHS).map((key) => ({ key, emoji: PROFILE_AVATAR_GLYPHS[key], ...PROFILE_AVATAR_META[key] }));
 
 const complaintBaseStats = {
   resolved: 1246,
@@ -129,6 +145,7 @@ state.brandOpsSelection = typeof state.brandOpsSelection === 'string' ? state.br
 state.brandOpsActionDraft = typeof state.brandOpsActionDraft === 'string' ? state.brandOpsActionDraft : initialState.brandOpsActionDraft;
 state.brandOpsNoteDraft = typeof state.brandOpsNoteDraft === 'string' ? state.brandOpsNoteDraft : initialState.brandOpsNoteDraft;
 state.brandOpsComplaintDraft = typeof state.brandOpsComplaintDraft === 'string' ? state.brandOpsComplaintDraft : initialState.brandOpsComplaintDraft;
+state.profileCenter = { profile: null, source: 'idle', loadedKey: '', error: '', saveError: '', saving: false, loading: false };
 
 const brands = state.brandDirectory;
 refreshBrandSignals();
@@ -181,6 +198,91 @@ function readStore() {
 function readAuthSession() {
   try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null'); } catch { return null; }
 }
+function authSessionKey(user = readAuthSession()) { return user ? String(user.id || user.email || user.profileId || 'active-profile') : 'guest'; }
+function avatarOption(key) { return PROFILE_AVATAR_OPTIONS.find((item) => item.key === key) || PROFILE_AVATAR_OPTIONS[0]; }
+function avatarInlineStyle(key) {
+  const item = avatarOption(key);
+  return `--profile-gradient:${item.gradient};--profile-glow:${item.glow}`;
+}
+function userProfileFromSession(user = readAuthSession()) {
+  if (!user) return null;
+  const profile = user.profile || {};
+  const nickname = profile.nickname || user.nickname || null;
+  return {
+    ...profile,
+    id: profile.id || user.profileId || user.id,
+    userId: profile.userId || user.id,
+    email: profile.email || user.email || '',
+    displayName: profile.displayName || user.displayName || nickname || emailPrefix(user.email),
+    nickname,
+    avatarKey: profile.avatarKey || user.avatarKey || 'neon-orbit',
+    bio: profile.bio || user.bio || '',
+    role: profile.role || user.role || 'user',
+    level: Number(profile.level ?? user.level ?? 1) || 1,
+    xp: Number(profile.xp ?? user.xp ?? 0) || 0,
+    points: Number(profile.points ?? user.points ?? 0) || 0,
+    wallet: Number(profile.wallet ?? user.wallet ?? 0) || 0,
+    trustScore: Number(profile.trustScore ?? user.trustScore ?? 70) || 70,
+    contributionScore: Number(profile.contributionScore ?? user.contributionScore ?? 0) || 0,
+    reviewCount: Number(profile.reviewCount ?? user.reviewCount ?? 0) || 0,
+    complaintCount: Number(profile.complaintCount ?? user.complaintCount ?? 0) || 0,
+    solvedContributionCount: Number(profile.solvedContributionCount ?? user.solvedContributionCount ?? 0) || 0,
+    helpfulVotes: Number(profile.helpfulVotes ?? user.helpfulVotes ?? 0) || 0,
+    badges: Array.isArray(profile.badges) ? profile.badges : Array.isArray(user.badges) ? user.badges : [],
+    createdAt: profile.createdAt || user.createdAt || null,
+    updatedAt: profile.updatedAt || user.updatedAt || null,
+    localOnly: Boolean(profile.localOnly || user.localOnly),
+    onboardingCompleted: Boolean(profile.onboardingCompleted ?? user.onboardingCompleted)
+  };
+}
+function mergeAuthProfile(profile) {
+  const current = readAuthSession();
+  if (!current || !profile) return null;
+  const mergedProfile = { ...(current.profile || {}), ...profile };
+  const next = {
+    ...current,
+    profileId: mergedProfile.id || current.profileId,
+    displayName: mergedProfile.nickname || mergedProfile.displayName || current.displayName,
+    nickname: mergedProfile.nickname || null,
+    avatarKey: mergedProfile.avatarKey || current.avatarKey || 'neon-orbit',
+    bio: mergedProfile.bio || '',
+    wallet: mergedProfile.wallet ?? current.wallet ?? 0,
+    xp: mergedProfile.xp ?? current.xp ?? 0,
+    points: mergedProfile.points ?? current.points ?? 0,
+    level: mergedProfile.level ?? current.level ?? 1,
+    trustScore: mergedProfile.trustScore ?? current.trustScore ?? 70,
+    contributionScore: mergedProfile.contributionScore ?? current.contributionScore ?? 0,
+    reviewCount: mergedProfile.reviewCount ?? current.reviewCount ?? 0,
+    complaintCount: mergedProfile.complaintCount ?? current.complaintCount ?? 0,
+    solvedContributionCount: mergedProfile.solvedContributionCount ?? current.solvedContributionCount ?? 0,
+    helpfulVotes: mergedProfile.helpfulVotes ?? current.helpfulVotes ?? 0,
+    profile: mergedProfile
+  };
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent('gi:auth', { detail: next }));
+  return next;
+}
+function profileDisplayName(profile = {}) { return profile.nickname || profile.displayName || emailPrefix(profile.email) || 'Üye'; }
+function joinedDate(profile = {}) {
+  const value = profile.createdAt || profile.updatedAt;
+  if (!value) return 'Yeni katıldı';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Yeni katıldı';
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date);
+}
+function profileSourceLabel() {
+  if (state.profileCenter.source === 'supabase') return 'Supabase profili';
+  if (state.profileCenter.source === 'local') return 'Yerel profil taslağı';
+  if (state.profileCenter.source === 'auth') return 'Oturum görünümü';
+  return 'Profil doğrulanıyor';
+}
+function profileLevelName(profile = {}) {
+  const points = Number(profile.points || 0);
+  if (points >= 2000) return 'Diamond';
+  if (points >= 1300) return 'Elite';
+  if (points >= 500) return 'Aktif';
+  return Number(profile.level || 1) > 1 ? `Seviye ${profile.level}` : 'Yeni Üye';
+}
 
 function saveStore() {
   refreshBrandSignals();
@@ -211,6 +313,7 @@ function saveStore() {
 }
 
 function money(value) { return new Intl.NumberFormat('tr-TR').format(value); }
+function emailPrefix(email = '') { return String(email).split('@')[0]?.trim() || 'Üye'; }
 function root() { return document.getElementById('root'); }
 function avatarInitial(user) {
   const profile = user?.profile || user || {};
@@ -339,6 +442,16 @@ function installStyles() {
   document.head.appendChild(style);
 }
 
+function installProfileStyles() {
+  if (document.getElementById('profile-center-style')) return;
+  const style = document.createElement('style');
+  style.id = 'profile-center-style';
+  style.textContent = `
+    .profileCenter{padding:34px 20px 54px}.profileShell{max-width:1120px;margin:0 auto;display:grid;gap:18px}.profileHeroCenter{position:relative;overflow:hidden;border:1px solid rgba(178,204,255,.16);border-radius:26px;background:linear-gradient(132deg,rgba(9,20,35,.98) 0%,rgba(13,24,41,.94) 48%,rgba(20,38,54,.96) 100%);box-shadow:var(--shadow);display:grid;grid-template-columns:.82fr 1.18fr;min-height:340px}.profileHeroCenter:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 18% 26%,rgba(37,240,132,.18),transparent 34%),radial-gradient(circle at 86% 16%,rgba(248,184,78,.12),transparent 35%);pointer-events:none}.profileAvatarStage{position:relative;display:grid;place-items:center;min-height:320px;border-right:1px solid rgba(178,204,255,.12)}.profileOrbit{position:absolute;width:230px;height:230px;border:1px solid rgba(255,255,255,.12);border-radius:999px;animation:profileSpin 16s linear infinite}.profileOrbit:after{content:'';position:absolute;width:13px;height:13px;right:27px;top:26px;border-radius:999px;background:#8affb5;box-shadow:0 0 22px rgba(138,255,181,.8)}.profileAvatarLarge{position:relative;width:152px;height:152px;border-radius:44px;display:grid;place-items:center;background:var(--profile-gradient);box-shadow:0 0 56px var(--profile-glow),0 24px 70px rgba(0,0,0,.34);color:#06120b;font-size:72px;font-weight:950;animation:profileFloat 4.4s ease-in-out infinite}.profileHeroCopy{position:relative;padding:42px 42px 38px;align-self:end}.profileHeroMeta{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}.profilePill{border:1px solid rgba(178,204,255,.15);border-radius:999px;background:rgba(255,255,255,.05);color:#b9c7d9;padding:7px 10px;font-size:11px;font-weight:900}.profilePill.green{border-color:rgba(37,240,132,.35);background:rgba(37,240,132,.11);color:#a7ffc6}.profileHeroCopy h1{font-size:clamp(38px,5vw,70px);letter-spacing:-.06em;margin-bottom:10px}.profileBio{max-width:620px;color:#bac9da;font-size:15px;line-height:1.65;margin:0 0 18px}.profileHeroActions{display:flex;gap:10px;flex-wrap:wrap}.profileBand{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.profileMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.profileMetric{border:1px solid rgba(178,204,255,.14);border-radius:16px;background:rgba(255,255,255,.04);padding:14px;min-height:88px}.profileMetric span{display:block;color:#92a5ba;font-size:11px;font-weight:900}.profileMetric b{display:block;font-size:24px;letter-spacing:-.03em;margin-top:7px}.profileMetric small{display:block;color:#79f0aa;margin-top:4px}.profilePanel{border:1px solid rgba(178,204,255,.14);border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));box-shadow:var(--shadow);padding:20px}.profilePanel h2,.profilePanel h3{margin-bottom:8px}.profileProgressHead{display:flex;justify-content:space-between;gap:14px;align-items:end;margin-bottom:12px}.profileProgressHead b{font-size:28px}.profileMilestone{color:#a9bad0;line-height:1.5;margin-top:11px}.profileBadges{display:flex;gap:8px;flex-wrap:wrap}.profileBadge{border:1px solid rgba(37,240,132,.28);border-radius:999px;background:rgba(37,240,132,.10);color:#baffd0;padding:8px 10px;font-size:12px;font-weight:900}.profileEmpty{border:1px dashed rgba(178,204,255,.22);border-radius:16px;background:rgba(255,255,255,.025);color:#a9bad0;padding:18px;line-height:1.5}.profileTimeline{display:grid;gap:10px}.profileTimelineItem{border:1px solid rgba(178,204,255,.12);border-radius:15px;background:rgba(255,255,255,.035);padding:12px}.profileTimelineItem b{display:block}.profileTimelineItem small{color:#8fa3ba}.profileSettings{display:grid;grid-template-columns:1fr 1fr;gap:12px}.profileSettings .wide{grid-column:1/-1}.profileAvatarPicker{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.profileAvatarPick{position:relative;border:1px solid rgba(178,204,255,.14);border-radius:15px;background:rgba(255,255,255,.04);color:#eef7ff;min-height:92px;padding:9px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}.profileAvatarPick:hover,.profileAvatarPick:focus{transform:translateY(-2px);border-color:rgba(255,255,255,.30)}.profileAvatarPick:has(input:checked){border-color:rgba(37,240,132,.62);box-shadow:0 0 0 2px rgba(37,240,132,.10),0 18px 40px var(--profile-glow);background:rgba(37,240,132,.10)}.profileAvatarPick input{position:absolute;opacity:0;pointer-events:none}.profileAvatarPick i{width:34px;height:34px;border-radius:13px;display:grid;place-items:center;background:var(--profile-gradient);box-shadow:0 0 22px var(--profile-glow);color:#06120b;font-style:normal;font-weight:950;margin-bottom:7px}.profileAvatarPick b{display:block;font-size:11px}.profileAvatarPick span{display:block;color:#9fb1c8;font-size:10px;line-height:1.25}.profileError{border:1px solid rgba(255,77,109,.30);border-radius:14px;background:rgba(255,77,109,.12);color:#ffd0d8;padding:12px;grid-column:1/-1}.profileFormActions{display:flex;justify-content:flex-end;align-items:center;gap:10px;grid-column:1/-1}.profileSourceNote{color:#8fa3ba;font-size:12px;margin:8px 0 0}.profileLoginRequired{max-width:620px;margin:42px auto;border:1px solid rgba(178,204,255,.16);border-radius:24px;background:linear-gradient(145deg,rgba(13,24,41,.96),rgba(9,20,35,.96));box-shadow:var(--shadow);padding:30px;text-align:center}.profileLoginRequired h1{font-size:42px;margin-bottom:12px}.profileLoginRequired p{color:#a9bad0;line-height:1.6}.profileLoading{color:#a9bad0}.profileEditAnchor{scroll-margin-top:76px}@keyframes profileFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}@keyframes profileSpin{to{transform:rotate(360deg)}}@media(max-width:980px){.profileHeroCenter,.profileBand,.profileSettings{grid-template-columns:1fr}.profileAvatarStage{border-right:0;border-bottom:1px solid rgba(178,204,255,.12);min-height:260px}.profileHeroCopy{padding:26px}.profileMetrics{grid-template-columns:1fr 1fr}.profileAvatarPicker{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.profileCenter{padding:20px 12px 44px}.profileMetrics{grid-template-columns:1fr}.profileHeroActions,.profileFormActions{flex-direction:column;align-items:stretch}.profileAvatarLarge{width:128px;height:128px;font-size:62px}.profileOrbit{width:190px;height:190px}.profileLoginRequired h1{font-size:34px}}
+  `;
+  document.head.appendChild(style);
+}
+
 function routeTo(path) {
   const next = normalize(path);
   history.pushState({}, '', next);
@@ -412,7 +525,7 @@ function authenticatedTopbar(user) {
   const wallet = money(Number(user.wallet || profile.wallet || 0));
   const xp = money(Number(user.xp || profile.xp || 0));
 
-  return `<button type="button" class="authSession" data-action="profile"><span class="authAvatar">${avatarInitial(user)}</span>${display}</button><span class="btn authWallet hideMobile">₺${wallet} · ${xp} XP</span><button type="button" class="authSignout" data-auth-signout>Çıkış</button>`;
+  return `<a class="btn authProfileLink" href="/profil" data-auth-profile-link>Profilim</a><button type="button" class="authSession" data-action="profile"><span class="authAvatar">${avatarInitial(user)}</span>${display}</button><span class="btn authWallet hideMobile">₺${wallet} · ${xp} XP</span><button type="button" class="authSignout" data-auth-signout>Çıkış</button>`;
 }
 
 function stat(value, label) { return `<article class="stat"><b>${value}</b><span>${label}</span></article>`; }
@@ -1245,6 +1358,293 @@ function aiAdvisor() {
   `;
 }
 
+function profileMetrics(profile = {}) {
+  const localFallback = state.profileCenter.source !== 'supabase';
+  return {
+    points: localFallback ? Number(profile.points || state.points || 0) : Number(profile.points || 0),
+    contributionScore: localFallback ? Number(profile.contributionScore || state.contribution || 0) : Number(profile.contributionScore || 0),
+    complaintCount: localFallback ? Number(profile.complaintCount || state.complaints.length || 0) : Number(profile.complaintCount || 0),
+    reviewCount: Number(profile.reviewCount ?? 0) || 0,
+    solvedContributionCount: localFallback ? Number(profile.solvedContributionCount || state.complaints.filter(isSolved).length || 0) : Number(profile.solvedContributionCount || 0),
+    helpfulVotes: Number(profile.helpfulVotes ?? 0) || 0,
+  };
+}
+
+function profileMetric(value, label, detail = '') {
+  return `<article class="profileMetric"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b>${detail ? `<small>${escapeHtml(detail)}</small>` : ''}</article>`;
+}
+
+function profileProgress(profile = {}) {
+  const points = Number(profile.points || 0);
+  const milestones = [
+    { name: 'Yeni Üye', min: 0, next: 500 },
+    { name: 'Aktif', min: 500, next: 1300 },
+    { name: 'Elite', min: 1300, next: 2000 },
+    { name: 'Diamond', min: 2000, next: 3000 },
+  ];
+  const current = milestones.find((item, index) => points >= item.min && (index === milestones.length - 1 || points < item.next)) || milestones[0];
+  const nextName = current.name === 'Diamond' ? 'Diamond+' : milestones[milestones.indexOf(current) + 1]?.name || 'Diamond+';
+  const span = Math.max(1, current.next - current.min);
+  const percent = current.name === 'Diamond' ? 100 : clamp(Math.round(((points - current.min) / span) * 100));
+  const remaining = Math.max(0, current.next - points);
+  return { current: profileLevelName(profile), nextName, percent, remaining };
+}
+
+function profileActivityItems() {
+  if (state.profileCenter.source === 'supabase') return [];
+  const activityItems = state.activityLog.slice(0, 6).map((activity) => ({
+    title: activity.label || 'Katkı hareketi',
+    meta: `${activity.points ? `+${activity.points} puan · ` : ''}Yerel cihaz kaydı`,
+    createdAt: activity.createdAt,
+  }));
+  const complaintItems = sortedComplaints().slice(0, 4).map((complaint) => ({
+    title: `${complaint.id} · ${complaint.title}`,
+    meta: `${complaint.status} · Yerel şikayet kaydı`,
+    createdAt: complaint.updatedAt || complaint.createdAt,
+  }));
+  return [...activityItems, ...complaintItems]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 6);
+}
+
+function profileBadges(profile = {}) {
+  const badges = Array.isArray(profile.badges) ? profile.badges.filter(Boolean) : [];
+  if (!badges.length) return '<div class="profileEmpty">İlk rozetin, doğrulanmış katkınla açılacak.</div>';
+  return `<div class="profileBadges">${badges.map((badge) => `<span class="profileBadge">${escapeHtml(badge)}</span>`).join('')}</div>`;
+}
+
+function profileActivityPanel() {
+  const items = profileActivityItems();
+  if (!items.length) {
+    return state.profileCenter.source === 'supabase'
+      ? '<div class="profileEmpty">Supabase profilinde henüz gösterilecek doğrulanmış aktivite yok.</div>'
+      : '<div class="profileEmpty">Yerel cihaz kaydında henüz profil aktivitesi yok.</div>';
+  }
+  return `<div class="profileTimeline">${items.map((item) => `
+    <article class="profileTimelineItem">
+      <b>${escapeHtml(item.title)}</b>
+      <small>${escapeHtml(item.meta)} · ${escapeHtml(complaintTime(item.createdAt))}</small>
+    </article>
+  `).join('')}</div>`;
+}
+
+function profileSettingsForm(profile = {}) {
+  return `
+    <form id="profile-settings" class="profilePanel profileEditAnchor" data-profile-settings-form>
+      <h2>Profil Ayarları</h2>
+      <p class="profileSourceNote">Kaydetme işlemi profil servisi üzerinden yapılır; reddedilirse bu form açık kalır.</p>
+      ${state.profileCenter.saveError ? `<div class="profileError">${escapeHtml(state.profileCenter.saveError)}</div>` : ''}
+      <label>
+        <span class="muted">Takma ad</span>
+        <input class="input" name="nickname" minlength="3" maxlength="24" value="${escapeHtml(profile.nickname || '')}" placeholder="ornek-kullanici" required>
+      </label>
+      <label>
+        <span class="muted">Kısa bio</span>
+        <textarea class="textarea" name="bio" maxlength="240" placeholder="Güven ekosisteminde nasıl katkı vermek istiyorsun?">${escapeHtml(profile.bio || '')}</textarea>
+      </label>
+      <div class="wide">
+        <span class="muted">Avatar</span>
+        <div class="profileAvatarPicker">
+          ${PROFILE_AVATAR_OPTIONS.map((item) => `
+            <label class="profileAvatarPick" style="${escapeHtml(avatarInlineStyle(item.key))}">
+              <input type="radio" name="avatarKey" value="${escapeHtml(item.key)}" ${item.key === (profile.avatarKey || 'neon-orbit') ? 'checked' : ''}>
+              <i>${escapeHtml(item.emoji)}</i>
+              <b>${escapeHtml(item.label)}</b>
+              <span>${escapeHtml(item.subtitle)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="profileFormActions">
+        <small class="muted">Takma ad 3-24 karakter; Türkçe harf, sayı, alt çizgi veya tire.</small>
+        <button class="btn green" type="submit" ${state.profileCenter.saving ? 'disabled' : ''}>${state.profileCenter.saving ? 'Kaydediliyor...' : 'Profili Kaydet'}</button>
+      </div>
+    </form>
+  `;
+}
+
+function profileLoginRequired() {
+  return `
+    <section class="profileCenter">
+      <div class="profileLoginRequired">
+        <span class="kicker purple">Profil Merkezi</span>
+        <h1>Profilini görmek için giriş yap</h1>
+        <p>Bu alan kişisel katkılarını ve profil ayarlarını gösterir. Misafir ziyaretçilere yerel demo admin profili gösterilmez.</p>
+        <div class="actions">
+          <button type="button" class="btn green" data-action="signin">Giriş Yap</button>
+          <button type="button" class="btn" data-action="signup">Üye Ol</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function profileCenter() {
+  const authUser = readAuthSession();
+  if (!authUser) return profileLoginRequired();
+  const profile = state.profileCenter.profile || userProfileFromSession(authUser);
+  if (!profile) return profileLoginRequired();
+  const metrics = profileMetrics(profile);
+  const progress = profileProgress({ ...profile, points: metrics.points });
+  const avatar = avatarOption(profile.avatarKey);
+  const source = profileSourceLabel();
+  const loading = state.profileCenter.loading ? '<span class="profilePill">Profil doğrulanıyor</span>' : '';
+  const sourceNote = state.profileCenter.source === 'supabase'
+    ? 'Profil bilgileri Supabase hesabından okunuyor.'
+    : 'Bu görünüm yerel oturum verisiyle hazırlanıyor; sunucu aktivitesi gelirse otomatik yenilenir.';
+  return `
+    <section class="profileCenter">
+      <div class="profileShell">
+        <article class="profileHeroCenter">
+          <div class="profileAvatarStage" style="${escapeHtml(avatarInlineStyle(avatar.key))}">
+            <div class="profileOrbit"></div>
+            <div class="profileAvatarLarge">${escapeHtml(avatar.emoji)}</div>
+          </div>
+          <div class="profileHeroCopy">
+            <div class="profileHeroMeta">
+              <span class="profilePill green">${escapeHtml(source)}</span>
+              <span class="profilePill">${escapeHtml(progress.current)}</span>
+              <span class="profilePill">${escapeHtml(joinedDate(profile))}</span>
+              ${loading}
+            </div>
+            <h1>${escapeHtml(profileDisplayName(profile))}</h1>
+            <p class="profileBio">${escapeHtml(profile.bio || 'Profil bio alanın boş. Nasıl katkı vermek istediğini birkaç cümleyle ekleyebilirsin.')}</p>
+            <div class="profileHeroActions">
+              <a class="btn green" href="#profile-settings" data-profile-edit>Profili Düzenle</a>
+              <a class="btn" href="/sikayetler" data-route>Katkı Yap</a>
+            </div>
+            <p class="profileSourceNote">${escapeHtml(sourceNote)}${state.profileCenter.error ? ` ${escapeHtml(state.profileCenter.error)}` : ''}</p>
+          </div>
+        </article>
+        <div class="profileBand">
+          <section class="profilePanel">
+            <h2>Katkı Özeti</h2>
+            <div class="profileMetrics">
+              ${profileMetric(money(metrics.points), 'Puan', state.profileCenter.source === 'supabase' ? 'Profil kaydı' : 'Yerel veri')}
+              ${profileMetric(`${metrics.contributionScore}%`, 'Katkı Skoru')}
+              ${profileMetric(metrics.complaintCount, 'Şikayet')}
+              ${profileMetric(metrics.reviewCount, 'İnceleme')}
+              ${profileMetric(metrics.solvedContributionCount, 'Çözülen Katkı')}
+              ${profileMetric(metrics.helpfulVotes, 'Faydalı Oy')}
+            </div>
+          </section>
+          <section class="profilePanel">
+            <div class="profileProgressHead">
+              <div><span class="muted">Mevcut seviye</span><b>${escapeHtml(progress.current)}</b></div>
+              <span class="profilePill green">%${progress.percent}</span>
+            </div>
+            <div class="progress" style="--w:${progress.percent}%"><i></i></div>
+            <p class="profileMilestone">${progress.remaining ? `${money(progress.remaining)} puan sonra ${progress.nextName} seviyesine yaklaşırsın.` : `${progress.nextName} eşiğini açtın; yeni doğrulanmış katkılar seviyeni güçlendirir.`}</p>
+          </section>
+        </div>
+        <div class="profileBand">
+          <section class="profilePanel">
+            <h2>Rozetler</h2>
+            ${profileBadges(profile)}
+          </section>
+          <section class="profilePanel">
+            <h2>Son Aktivite</h2>
+            ${profileActivityPanel()}
+          </section>
+        </div>
+        ${profileSettingsForm(profile)}
+      </div>
+    </section>
+  `;
+}
+
+async function ensureProfileCenterProfile() {
+  if (state.route !== '/profil') return;
+  const authUser = readAuthSession();
+  if (!authUser) {
+    state.profileCenter = { profile: null, source: 'guest', loadedKey: 'guest', error: '', saveError: '', saving: false, loading: false };
+    return;
+  }
+  const key = authSessionKey(authUser);
+  if (state.profileCenter.loading || (state.profileCenter.loadedKey === key && state.profileCenter.source !== 'idle')) return;
+  const authProfile = userProfileFromSession(authUser);
+  state.profileCenter = { ...state.profileCenter, profile: authProfile, source: 'auth', loadedKey: key, error: '', loading: true };
+  render();
+  const store = window.platformStore;
+  if (!store?.fetchOwnProfile) {
+    state.profileCenter = { ...state.profileCenter, source: 'auth', loading: false };
+    render();
+    return;
+  }
+  try {
+    const session = await store.getCurrentSession?.();
+    if (store.hasSupabase && (!session || session.localOnly || !session.user?.id)) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent('gi:auth', { detail: null }));
+      state.profileCenter = { profile: null, source: 'guest', loadedKey: 'guest', error: '', saveError: '', saving: false, loading: false };
+      render();
+      return;
+    }
+    const profile = await store.fetchOwnProfile(session?.user || authUser);
+    const nextProfile = profile || authProfile;
+    if (profile) mergeAuthProfile(profile);
+    state.profileCenter = {
+      ...state.profileCenter,
+      profile: nextProfile,
+      source: profile ? (profile.localOnly || !store.hasSupabase ? 'local' : 'supabase') : 'auth',
+      error: '',
+      loading: false
+    };
+  } catch (error) {
+    state.profileCenter = {
+      ...state.profileCenter,
+      profile: authProfile,
+      source: 'auth',
+      error: error?.message || 'Profil bilgileri yenilenemedi.',
+      loading: false
+    };
+  }
+  render();
+}
+
+async function saveProfileSettings(formData) {
+  const authUser = readAuthSession();
+  if (!authUser) {
+    showToast('Profilini düzenlemek için giriş yapmalısın.');
+    return;
+  }
+  const nickname = formData.get('nickname')?.toString().trim();
+  const avatarKey = formData.get('avatarKey')?.toString() || 'neon-orbit';
+  const bio = formData.get('bio')?.toString().trim() || '';
+  if (!PROFILE_NICKNAME_RE.test(nickname || '')) {
+    state.profileCenter.saveError = 'Takma ad 3-24 karakter olmalı; Türkçe harf, sayı, alt çizgi veya tire kullanabilirsin.';
+    render();
+    return;
+  }
+  state.profileCenter = { ...state.profileCenter, saving: true, saveError: '' };
+  render();
+  try {
+    const store = window.platformStore;
+    if (!store?.updateOwnProfileProfileFields) throw new Error('Profil servisi henüz hazır değil. Lütfen birkaç saniye sonra tekrar dene.');
+    const session = await store.getCurrentSession?.();
+    if (store.hasSupabase && (!session || session.localOnly || !session.user?.id)) throw new Error('Profil kaydetmek için giriş yapmalısın.');
+    const profile = await store.updateOwnProfileProfileFields({ nickname, avatarKey, bio, onboardingCompleted: true }, authUser);
+    if (store.hasSupabase && profile?.localOnly) throw new Error('Profil kaydedilemedi. Supabase profil satırı doğrulanamadı.');
+    mergeAuthProfile(profile);
+    state.profileCenter = {
+      ...state.profileCenter,
+      profile,
+      source: profile?.localOnly || !store.hasSupabase ? 'local' : 'supabase',
+      saveError: '',
+      saving: false
+    };
+    render();
+    showToast('Profil güncellendi.');
+  } catch (error) {
+    state.profileCenter = {
+      ...state.profileCenter,
+      saveError: error?.message || 'Profil kaydedilemedi. Lütfen bilgileri kontrol edip tekrar dene.',
+      saving: false
+    };
+    render();
+  }
+}
+
 function generic(title, kicker, description, cards) {
   return `<section class="section"><div class="wrap"><div class="kicker">${kicker}</div><h1>${title}</h1><p class="sub" style="margin-left:0;text-align:left">${description}</p><div class="grid cards3">${cards.map((c) => `<div class="card"><h3>${c[0]}</h3><p>${c[1]}</p></div>`).join('')}</div></div></section>`;
 }
@@ -1252,6 +1652,7 @@ function generic(title, kicker, description, cards) {
 function view() {
   switch (state.route) {
     case '/': return home();
+    case '/profil': return profileCenter();
     case '/puanlama-motoru': return pointsEngine();
     case '/sikayetler': return complaints();
     case '/marka-ligi': return siteLeague();
@@ -1271,6 +1672,7 @@ function view() {
 
 function render() {
   installStyles();
+  installProfileStyles();
   root().innerHTML = `
     <div class="app">
       ${sidebar()}
@@ -1279,6 +1681,7 @@ function render() {
     </div>
   `;
   bindEvents();
+  if (state.route === '/profil') queueMicrotask(ensureProfileCenterProfile);
 }
 
 function bindEvents() {
@@ -1354,6 +1757,14 @@ function bindEvents() {
     event.preventDefault();
     createComplaint(new FormData(event.target));
   });
+  document.querySelector('[data-profile-settings-form]')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    saveProfileSettings(new FormData(event.target));
+  });
+  document.querySelector('[data-profile-edit]')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    document.getElementById('profile-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   document.querySelectorAll('[data-approve-complaint]').forEach((button) => {
     button.addEventListener('click', () => approveComplaint(button.dataset.approveComplaint));
   });
@@ -1374,7 +1785,14 @@ function escapeHtml(value) {
 
 window.addEventListener('popstate', () => {
   state.route = normalize(location.pathname);
+  if (state.route === '/profil') state.profileCenter.loadedKey = '';
   render();
+});
+
+window.addEventListener('gi:store-ready', () => {
+  if (state.route !== '/profil') return;
+  state.profileCenter.loadedKey = '';
+  ensureProfileCenterProfile();
 });
 
 render();
