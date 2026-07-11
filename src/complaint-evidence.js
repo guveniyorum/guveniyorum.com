@@ -211,7 +211,6 @@ function findCreatedComplaint(beforeIds, formSnapshot) {
   const complaints = state?.complaints || [];
   return complaints.find((complaint) => !beforeIds.has(complaint.id))
     || complaints.find((complaint) => complaint.title === formSnapshot.title && complaint.details === formSnapshot.details)
-    || complaints[0]
     || null;
 }
 
