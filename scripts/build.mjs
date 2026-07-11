@@ -1,4 +1,5 @@
 import { copyFileSync, mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const routes = [
   'marka-ligi',
@@ -39,6 +40,16 @@ const routes = [
   'uye-ol',
 ];
 
+const clientFiles = [
+  'platform-store.js',
+  'product-app.js',
+  'auth-topbar-bridge.js',
+  'complaint-case-submit.js',
+  'complaint-case-core.js',
+  'complaint-evidence.js',
+  'evidence-center.js',
+];
+
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/src', { recursive: true });
 copyFileSync('index.html', 'dist/index.html');
@@ -51,16 +62,11 @@ const envConfig = {
 };
 writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
-for (const file of [
-  'platform-store.js',
-  'product-app.js',
-  'auth-topbar-bridge.js',
-  'complaint-case-submit.js',
-  'complaint-case-core.js',
-  'complaint-evidence.js',
-  'evidence-center.js',
-]) {
-  if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
+for (const file of clientFiles) {
+  const source = `src/${file}`;
+  if (!existsSync(source)) continue;
+  execFileSync(process.execPath, ['--check', source], { stdio: 'inherit' });
+  copyFileSync(source, `dist/src/${file}`);
 }
 
 copyFileSync('_redirects', 'dist/_redirects');
