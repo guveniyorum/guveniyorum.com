@@ -88,24 +88,6 @@ for select
 to authenticated
 using (public.is_platform_staff());
 
--- Staff can inspect and update complaint records. Existing owner/public policies remain unchanged in this phase.
-grant select, update on table public.complaints to authenticated;
-
-drop policy if exists "Staff can read all complaints" on public.complaints;
-create policy "Staff can read all complaints"
-on public.complaints
-for select
-to authenticated
-using (public.is_platform_staff());
-
-drop policy if exists "Staff can update all complaints" on public.complaints;
-create policy "Staff can update all complaints"
-on public.complaints
-for update
-to authenticated
-using (public.is_platform_staff())
-with check (public.is_platform_staff());
-
 -- The bucket stays private. Signed URLs work only for users allowed by this SELECT policy.
 drop policy if exists "Staff can read all complaint evidence" on storage.objects;
 create policy "Staff can read all complaint evidence"
