@@ -1,5 +1,5 @@
 -- Link evidence uploads to a client-reserved complaint UUID in either race order.
--- This lets the existing uploader begin immediately while the central case RPC completes.
+-- This lets the evidence uploader begin with a stable case ID and prevents cross-case injection.
 
 create or replace function public.link_attachment_to_complaint_case()
 returns trigger
@@ -62,6 +62,26 @@ from public.complaints complaint
 where attachment.complaint_id is null
   and attachment.user_id = complaint.user_id
   and attachment.local_complaint_id = complaint.id::text;
+
+-- A user may attach evidence only to their own central case. Legacy null complaint_id
+-- uploads remain supported during the migration period and are still owner-folder scoped.
+drop policy if exists "Users can add own complaint attachments" on public.complaint_attachments;
+create policy "Users can add own complaint attachments"
+on public.complaint_attachments
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and (
+    complaint_id is null
+    or exists (
+      select 1
+      from public.complaints complaint
+      where complaint.id = complaint_id
+        and complaint.user_id = auth.uid()
+    )
+  )
+);
 
 drop function if exists public.create_complaint_case(uuid, text, text, text, text, text);
 
