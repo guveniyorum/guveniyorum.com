@@ -31,6 +31,7 @@ const routes = [
   'sikayet-et',
   'admin',
   'admin/sikayetler',
+  'admin-sikayetler',
   'admin/puanlama',
   'misafir-kullanici',
   'giris-yap',
@@ -50,7 +51,7 @@ const envConfig = {
 };
 writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
-for (const file of ['platform-store.js', 'product-app.js', 'auth-topbar-bridge.js', 'complaint-evidence.js']) {
+for (const file of ['platform-store.js', 'product-app.js', 'auth-topbar-bridge.js', 'complaint-evidence.js', 'evidence-center.js']) {
   if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
 }
 
