@@ -1,0 +1,3 @@
+-- Historical Supabase migration already applied directly to the linked production database.
+-- The executable repository migration is 20260711010000_complaint_evidence_upload_v2.sql.
+-- This placeholder keeps supabase_migrations.schema_migrations aligned with the repository.
