@@ -112,12 +112,14 @@ async function publicDossier(publicId) {
   const result = await platformStore.supabase.rpc('get_public_complaint_dossier', { p_public_id: publicId });
   if (result.error || !result.data) return null;
   const data = result.data;
+  const attachments = await Promise.all((data.attachments || []).map(async (item) => {
+    const filePath = item.file_path || item.public_file_path;
+    if (!filePath) return { ...item, url: '' };
+    const signed = await platformStore.supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(filePath, 300);
+    return { ...item, url: signed.error ? '' : signed.data?.signedUrl || '' };
+  }));
   return {
-    access: 'public', case: data.case, author: data.author || {}, history: data.history || [],
-    attachments: (data.attachments || []).map((item) => ({
-      ...item,
-      url: publicUrl(item.public_file_path, item.storage_bucket || PRIVATE_BUCKET),
-    })),
+    access: 'public', case: data.case, author: data.author || {}, history: data.history || [], attachments,
   };
 }
 export async function loadDossier(publicId) { return await directDossier(publicId) || await publicDossier(publicId); }
