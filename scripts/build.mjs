@@ -30,6 +30,7 @@ const routes = [
   'puan-merkezi',
   'odul-merkezi',
   'sikayet-et',
+  'sikayet',
   'admin',
   'admin/sikayetler',
   'admin-sikayetler',
@@ -40,7 +41,7 @@ const routes = [
   'uye-ol',
 ];
 
-const clientFiles = [
+const browserModules = [
   'platform-store.js',
   'product-app.js',
   'auth-topbar-bridge.js',
@@ -48,7 +49,14 @@ const clientFiles = [
   'complaint-case-core.js',
   'complaint-evidence.js',
   'evidence-center.js',
+  'complaint-dossier-api.js',
+  'complaint-dossier-view.js',
+  'complaint-dossier-integration.js',
 ];
+
+for (const file of browserModules) {
+  if (existsSync(`src/${file}`)) execFileSync(process.execPath, ['--check', `src/${file}`], { stdio: 'inherit' });
+}
 
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/src', { recursive: true });
@@ -62,11 +70,8 @@ const envConfig = {
 };
 writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
-for (const file of clientFiles) {
-  const source = `src/${file}`;
-  if (!existsSync(source)) continue;
-  execFileSync(process.execPath, ['--check', source], { stdio: 'inherit' });
-  copyFileSync(source, `dist/src/${file}`);
+for (const file of browserModules) {
+  if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
 }
 
 copyFileSync('_redirects', 'dist/_redirects');
