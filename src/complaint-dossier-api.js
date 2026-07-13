@@ -37,9 +37,9 @@ export function formatBytes(value = 0) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
-export function publicUrl(path) {
+export function publicUrl(path, bucket = PUBLIC_BUCKET) {
   if (!path || !platformStore.supabase) return '';
-  return platformStore.supabase.storage.from(PUBLIC_BUCKET).getPublicUrl(path).data?.publicUrl || '';
+  return platformStore.supabase.storage.from(bucket).getPublicUrl(path).data?.publicUrl || '';
 }
 export function resetDossierCaches() {
   identityCache = { at: 0, session: null, role: null };
@@ -114,7 +114,10 @@ async function publicDossier(publicId) {
   const data = result.data;
   return {
     access: 'public', case: data.case, author: data.author || {}, history: data.history || [],
-    attachments: (data.attachments || []).map((item) => ({ ...item, url: publicUrl(item.public_file_path) })),
+    attachments: (data.attachments || []).map((item) => ({
+      ...item,
+      url: publicUrl(item.public_file_path, item.storage_bucket || PRIVATE_BUCKET),
+    })),
   };
 }
 export async function loadDossier(publicId) { return await directDossier(publicId) || await publicDossier(publicId); }
