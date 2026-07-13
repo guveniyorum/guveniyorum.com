@@ -1,4 +1,5 @@
 import { copyFileSync, mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const routes = [
   'marka-ligi',
@@ -29,6 +30,7 @@ const routes = [
   'puan-merkezi',
   'odul-merkezi',
   'sikayet-et',
+  'sikayet',
   'admin',
   'admin/sikayetler',
   'admin-sikayetler',
@@ -38,6 +40,23 @@ const routes = [
   'giris',
   'uye-ol',
 ];
+
+const browserModules = [
+  'platform-store.js',
+  'product-app.js',
+  'auth-topbar-bridge.js',
+  'complaint-case-submit.js',
+  'complaint-case-core.js',
+  'complaint-evidence.js',
+  'evidence-center.js',
+  'complaint-dossier-api.js',
+  'complaint-dossier-view.js',
+  'complaint-dossier-integration.js',
+];
+
+for (const file of browserModules) {
+  if (existsSync(`src/${file}`)) execFileSync(process.execPath, ['--check', `src/${file}`], { stdio: 'inherit' });
+}
 
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/src', { recursive: true });
@@ -51,7 +70,7 @@ const envConfig = {
 };
 writeFileSync('dist/src/env.js', `export const ENV = ${JSON.stringify(envConfig)};\n`);
 
-for (const file of ['platform-store.js', 'product-app.js', 'auth-topbar-bridge.js', 'complaint-evidence.js', 'evidence-center.js']) {
+for (const file of browserModules) {
   if (existsSync(`src/${file}`)) copyFileSync(`src/${file}`, `dist/src/${file}`);
 }
 
