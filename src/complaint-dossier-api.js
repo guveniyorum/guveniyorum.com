@@ -1,7 +1,6 @@
 import { platformStore } from './platform-store.js';
 
 export const PRIVATE_BUCKET = 'complaint-evidence';
-export const PUBLIC_BUCKET = 'complaint-public-evidence';
 export const STAFF_ROLES = new Set(['admin', 'moderator']);
 export const CLOSED_STATUSES = new Set(['resolved', 'closed', 'rejected']);
 export const AVATARS = {
@@ -36,10 +35,6 @@ export function formatBytes(value = 0) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-export function publicUrl(path, bucket = PUBLIC_BUCKET) {
-  if (!path || !platformStore.supabase) return '';
-  return platformStore.supabase.storage.from(bucket).getPublicUrl(path).data?.publicUrl || '';
 }
 export function resetDossierCaches() {
   identityCache = { at: 0, session: null, role: null };
@@ -83,6 +78,14 @@ export async function brandCases(brandName) {
   }
   return { mode: 'public', rows: await publicFeed(brandName, true) };
 }
+async function signedPrivateAttachments(rows) {
+  return Promise.all((rows || []).map(async (item) => {
+    const path = item.file_path || item.public_file_path;
+    if (!path) return { ...item, url: '' };
+    const signed = await platformStore.supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(path, 300);
+    return { ...item, url: signed.error ? '' : signed.data?.signedUrl || '' };
+  }));
+}
 async function directDossier(publicId) {
   const who = await identity();
   if (!who.session?.user?.id || who.session.localOnly || !platformStore.supabase) return null;
@@ -97,14 +100,11 @@ async function directDossier(publicId) {
     platformStore.supabase.from('complaint_attachments').select('id,file_path,file_name,file_size,mime_type,media_kind,moderation_status,created_at').eq('complaint_id', complaint.id).order('created_at', { ascending: true }),
     platformStore.supabase.from('complaint_status_history').select('to_status,actor_role,note,created_at').eq('complaint_id', complaint.id).order('created_at', { ascending: true }),
   ]);
-  const attachments = await Promise.all((attachmentResult.error ? [] : attachmentResult.data || []).map(async (item) => {
-    const signed = await platformStore.supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(item.file_path, 300);
-    return { ...item, url: signed.error ? '' : signed.data?.signedUrl || '' };
-  }));
   return {
     access: 'private', case: { ...complaint, summary: complaint.description },
     author: profileResult.error || !profileResult.data ? { nickname: 'Takma adlı kullanıcı', avatar_key: 'neon-orbit' } : profileResult.data,
-    attachments, history: historyResult.error ? [] : historyResult.data || [],
+    attachments: await signedPrivateAttachments(attachmentResult.error ? [] : attachmentResult.data || []),
+    history: historyResult.error ? [] : historyResult.data || [],
   };
 }
 async function publicDossier(publicId) {
@@ -114,10 +114,7 @@ async function publicDossier(publicId) {
   const data = result.data;
   return {
     access: 'public', case: data.case, author: data.author || {}, history: data.history || [],
-    attachments: (data.attachments || []).map((item) => ({
-      ...item,
-      url: publicUrl(item.public_file_path, item.storage_bucket || PRIVATE_BUCKET),
-    })),
+    attachments: await signedPrivateAttachments(data.attachments || []),
   };
 }
 export async function loadDossier(publicId) { return await directDossier(publicId) || await publicDossier(publicId); }
