@@ -7,49 +7,62 @@ alter table public.brands
   add column if not exists public_description text,
   add column if not exists verified boolean not null default false;
 
--- Reuse link and site data already maintained elsewhere in the platform.
-update public.brands brand
-set website_url = coalesce(
-  nullif(brand.website_url, ''),
-  (
-    select coalesce(nullif(link.tracking_url, ''), nullif(link.website_url, ''))
-    from public.brand_links link
-    where link.brand_id = brand.id
-      and coalesce(link.link_status, 'active') not in ('disabled', 'blocked')
-    order by link.updated_at desc nulls last, link.created_at desc nulls last
-    limit 1
-  )
-)
-where brand.website_url is null or btrim(brand.website_url) = '';
-
-update public.brands brand
-set logo_url = coalesce(
-      nullif(brand.logo_url, ''),
-      (
-        select nullif(site.logo_url, '')
-        from public.sites site
-        where lower(btrim(site.name)) = lower(btrim(brand.name))
-        order by site.last_verified desc nulls last, site.created_at desc nulls last
-        limit 1
+-- Reuse link and site data when those historical tables exist. Preview branches may only
+-- contain placeholder migration history, so these backfills must remain optional.
+do $$
+begin
+  if to_regclass('public.brand_links') is not null then
+    execute $sql$
+      update public.brands brand
+      set website_url = coalesce(
+        nullif(brand.website_url, ''),
+        (
+          select coalesce(nullif(link.tracking_url, ''), nullif(link.website_url, ''))
+          from public.brand_links link
+          where link.brand_id = brand.id
+            and coalesce(link.link_status, 'active') not in ('disabled', 'blocked')
+          order by link.updated_at desc nulls last, link.created_at desc nulls last
+          limit 1
+        )
       )
-    ),
-    public_description = coalesce(
-      nullif(brand.public_description, ''),
-      (
-        select nullif(site.description, '')
-        from public.sites site
-        where lower(btrim(site.name)) = lower(btrim(brand.name))
-        order by site.last_verified desc nulls last, site.created_at desc nulls last
-        limit 1
-      ),
-      nullif(brand.short_insight, '')
-    ),
-    verified = brand.verified or exists (
-      select 1
-      from public.sites site
-      where lower(btrim(site.name)) = lower(btrim(brand.name))
-        and lower(coalesce(site.verification_status, '')) in ('verified', 'approved', 'active')
-    );
+      where brand.website_url is null or btrim(brand.website_url) = ''
+    $sql$;
+  end if;
+
+  if to_regclass('public.sites') is not null then
+    execute $sql$
+      update public.brands brand
+      set logo_url = coalesce(
+            nullif(brand.logo_url, ''),
+            (
+              select nullif(site.logo_url, '')
+              from public.sites site
+              where lower(btrim(site.name)) = lower(btrim(brand.name))
+              order by site.last_verified desc nulls last, site.created_at desc nulls last
+              limit 1
+            )
+          ),
+          public_description = coalesce(
+            nullif(brand.public_description, ''),
+            (
+              select nullif(site.description, '')
+              from public.sites site
+              where lower(btrim(site.name)) = lower(btrim(brand.name))
+              order by site.last_verified desc nulls last, site.created_at desc nulls last
+              limit 1
+            ),
+            nullif(brand.short_insight, '')
+          ),
+          verified = brand.verified or exists (
+            select 1
+            from public.sites site
+            where lower(btrim(site.name)) = lower(btrim(brand.name))
+              and lower(coalesce(site.verification_status, '')) in ('verified', 'approved', 'active')
+          )
+    $sql$;
+  end if;
+end
+$$;
 
 create index if not exists brands_public_directory_idx
   on public.brands (visible, status, trust_score desc, name);
