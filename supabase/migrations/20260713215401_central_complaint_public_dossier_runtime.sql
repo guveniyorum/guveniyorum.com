@@ -1,0 +1,3 @@
+-- Migration history placeholder.
+-- This version was already applied directly to the production Supabase project.
+-- The implemented schema is represented by the complaint core and public dossier migrations in this repository.
