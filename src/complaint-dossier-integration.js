@@ -4,7 +4,7 @@ import { ensureDossierStyles, publicCard, openDossier } from './complaint-dossie
 let renderToken = 0;
 
 function path() { return location.pathname.replace(/\/+$/, '') || '/'; }
-function publicPlatformActive() { return Boolean(window.__giPublicReputationPlatform); }
+function publicPlatformActive() { return Boolean(document.querySelector('[data-grp-root]')); }
 function caseIdFromText(value = '') { return String(value).match(/GVN-\d{4}-\d+/)?.[0] || ''; }
 function navigate(pathname) {
   history.pushState({}, '', pathname);
