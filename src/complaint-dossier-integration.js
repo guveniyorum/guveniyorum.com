@@ -4,6 +4,7 @@ import { ensureDossierStyles, publicCard, openDossier } from './complaint-dossie
 let renderToken = 0;
 
 function path() { return location.pathname.replace(/\/+$/, '') || '/'; }
+function publicPlatformActive() { return Boolean(document.querySelector('[data-grp-root]')); }
 function caseIdFromText(value = '') { return String(value).match(/GVN-\d{4}-\d+/)?.[0] || ''; }
 function navigate(pathname) {
   history.pushState({}, '', pathname);
@@ -22,7 +23,7 @@ function ensureIntegrationStyles() {
 }
 
 async function replaceComplaintQueue() {
-  if (path() !== '/sikayetler') return;
+  if (publicPlatformActive() || path() !== '/sikayetler') return;
   const token = ++renderToken;
   const queue = document.querySelector('.queue');
   if (!queue || queue.dataset.pdiRealQueue === 'loading') return;
@@ -73,7 +74,7 @@ async function renderBrandCases() {
 }
 
 function connectExistingCards() {
-  if (!['/sikayetler', '/marka-yonetimi'].includes(path())) return;
+  if (publicPlatformActive() || !['/sikayetler', '/marka-yonetimi'].includes(path())) return;
   document.querySelectorAll('article.complaint:not([data-pcd-public-id]), .site:not([data-pdi-checked])').forEach((card) => {
     card.dataset.pdiChecked = '1';
     const id = caseIdFromText(card.textContent);
@@ -86,6 +87,7 @@ function connectExistingCards() {
 }
 
 async function openFromLocation() {
+  if (publicPlatformActive()) return;
   const match = path().match(/^\/sikayet\/(GVN-\d{4}-\d+)$/i);
   if (match) await openDossier(match[1].toUpperCase());
 }
@@ -100,7 +102,7 @@ function sync() {
 
 document.addEventListener('click', async (event) => {
   const target = event.target.closest?.('[data-pcd-open], [data-pcd-public-id]');
-  if (!target) return;
+  if (!target || publicPlatformActive()) return;
   const publicId = target.dataset.pcdOpen || target.dataset.pcdPublicId;
   if (!publicId) return;
   event.preventDefault();
@@ -111,7 +113,7 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('keydown', async (event) => {
-  if (!['Enter', ' '].includes(event.key)) return;
+  if (!['Enter', ' '].includes(event.key) || publicPlatformActive()) return;
   const target = event.target.closest?.('[data-pcd-open], [data-pcd-public-id]');
   if (!target) return;
   event.preventDefault();
@@ -136,6 +138,6 @@ ensureIntegrationStyles();
 sync();
 new MutationObserver(() => requestAnimationFrame(() => {
   connectExistingCards();
-  if (path() === '/sikayetler' && !document.querySelector('.queue[data-pdi-real-queue="ready"]')) replaceComplaintQueue();
+  if (!publicPlatformActive() && path() === '/sikayetler' && !document.querySelector('.queue[data-pdi-real-queue="ready"]')) replaceComplaintQueue();
   if (path() === '/marka-yonetimi' && !document.querySelector('[data-pdi-brand-cases]')) renderBrandCases();
 })).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
