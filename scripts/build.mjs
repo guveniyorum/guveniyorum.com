@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, rmSync, existsSync, writeFileSync, readdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const routes = [
@@ -60,10 +60,6 @@ const browserModules = [
 
 for (const file of browserModules) {
   if (existsSync(`src/${file}`)) execFileSync(process.execPath, ['--check', `src/${file}`], { stdio: 'inherit' });
-}
-
-if (existsSync('supabase/migrations')) {
-  console.log(`Migration manifest: ${readdirSync('supabase/migrations').filter((file) => file.endsWith('.sql')).sort().join(',')}`);
 }
 
 rmSync('dist', { recursive: true, force: true });
