@@ -48,6 +48,7 @@ const routes = [
 const browserModules = [
   'platform-store.js',
   'product-app.js',
+  'homepage-v2.js',
   'auth-topbar-bridge.js',
   'public-reputation-loader.js',
   'complaints-v2-shell-bridge.js',
